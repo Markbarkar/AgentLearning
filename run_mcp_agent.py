@@ -63,7 +63,7 @@ def main():
         print("="*70)
         print()
         
-        task = "帮我修改test_doc文件夹下的权利要求书文档中权利要求书部分"
+        task = "帮我创建一个mcp学习文档"
         
         result = agent.run(task)
         

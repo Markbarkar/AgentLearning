@@ -5,6 +5,7 @@ MCP 官方服务器工具适配器
 
 import asyncio
 import json
+import sys
 import threading
 import inspect
 from typing import Dict, Any, List, Optional
@@ -12,6 +13,10 @@ from langchain_core.tools import StructuredTool
 from pydantic import create_model, Field
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+
+# 根据操作系统选择正确的 npx 命令
+NPX_COMMAND = "npx.cmd" if sys.platform == "win32" else "npx"
 
 
 class MCPClientAdapter:
@@ -128,19 +133,22 @@ class MCPClientAdapter:
 
 
 def create_mcp_langchain_tools(
-    server_command: str = "npx.cmd",
+    server_command: str = None,
     server_args: List[str] = None
 ) -> tuple[List[StructuredTool], MCPClientAdapter]:
     """
     创建 MCP LangChain 工具
     
     参数:
-        server_command: MCP 服务器命令
+        server_command: MCP 服务器命令（默认自动检测：Windows 用 npx.cmd，其他用 npx）
         server_args: MCP 服务器参数
         
     返回:
         (LangChain 工具列表, MCP 适配器实例)
     """
+    if server_command is None:
+        server_command = NPX_COMMAND
+    
     if server_args is None:
         # 默认：文件系统服务器，访问当前目录
         server_args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
@@ -220,7 +228,7 @@ def create_filesystem_tools(allowed_directory: str = ".") -> tuple[List[Structur
         (LangChain 工具列表, MCP 适配器实例)
     """
     return create_mcp_langchain_tools(
-        server_command="npx.cmd",
+        server_command=NPX_COMMAND,
         server_args=["-y", "@modelcontextprotocol/server-filesystem", allowed_directory]
     )
 
@@ -237,6 +245,6 @@ def create_sqlite_tools(database_path: str) -> tuple[List[StructuredTool], MCPCl
         (LangChain 工具列表, MCP 适配器实例)
     """
     return create_mcp_langchain_tools(
-        server_command="npx.cmd",
+        server_command=NPX_COMMAND,
         server_args=["-y", "@modelcontextprotocol/server-sqlite", database_path]
     )
