@@ -11,7 +11,7 @@ from pathlib import Path
 class Qwen25VLTools:
     """Qwen2.5-VL 信息提取工具集"""
     
-    def __init__(self, base_url: str = "http://www.zktmai.com:8001"):
+    def __init__(self, base_url: str = "http://localhost:8000"):
         self.base_url = base_url
         self.model_url = base_url + "/model"
         self.api_url = base_url + "/api"

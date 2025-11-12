@@ -233,56 +233,32 @@ def get_agent(temperature: Optional[float] = None):
     return _agent_instance
 
 
-@app.get("/")
-async def root():
-    """根路径，返回 API 信息"""
-    return {
-        "name": "Qwen2.5-VL Agent API",
-        "version": "1.0.0",
-        "description": "法律文书智能处理 Agent API",
-        "endpoints": {
-            "POST /process_task": "处理用户任务",
-            "GET /health": "健康检查",
-            "GET /tools": "获取可用工具列表"
-        }
-    }
-
-
-
-@app.get("/tools")
+@app.get("/agent/tools")
 async def get_tools_info():
     """获取可用工具列表"""
     return {
         "tools": [
             {
-                "name": "extract_legal_key_info",
-                "description": "提取法律文书的关键信息",
-                "input": "文件路径",
-                "output": "关键信息字典（案号、法院、当事人等）"
-            },
-            {
-                "name": "extract_document_text",
-                "description": "提取文档的全部文字内容（OCR）",
-                "input": "文件路径",
-                "output": "文档每一页的文字内容列表"
-            },
-            {
-                "name": "annotate_legal_pdf",
-                "description": "标注 PDF 法律文书，提取指定字段及其位置",
-                "input": "文件路径,字段列表（用分号分隔）",
-                "output": "字段内容和位置信息"
-            },
-            {
-                "name": "recognize_form",
-                "description": "识别法律案件表单/表格信息",
-                "input": "文件路径,表单类型",
-                "output": "结构化的表单数据"
+                "name": tool.name,
+                "description": tool.description,
             }
+            for tool in create_qwen_vl_tools()
         ]
     }
 
+# 添加OPTIONS请求处理（CORS跨域处理）
+@app.options("/agent/{path:path}")
+async def options_route(path: str):
+    return JSONResponse(
+        content="OK",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+        },
+    )
 
-@app.post("/process_task", response_model=TaskResponse)
+@app.post("/agent/process_task", response_model=TaskResponse)
 async def process_task(request: TaskRequest):
     """
     处理用户任务
