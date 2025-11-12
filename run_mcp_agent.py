@@ -63,8 +63,9 @@ def main():
         print("="*70)
         print()
         
-        task = "帮我创建一个mcp学习文档"
-        
+        # task = "帮我创建一个mcp学习文档"
+        task = "仅详细回答我怎么学习java？"
+
         result = agent.run(task)
         
         print("\n" + "="*70)
