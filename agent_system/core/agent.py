@@ -45,6 +45,8 @@ class Agent:
             llm: BaseChatModel,
             tools: List[BaseTool],
             max_thought_steps: Optional[int] = MAX_THOUGHT_STEPS,
+            knowledge_base=None,
+            use_rag: bool = True,
     ):
         """
         初始化 Agent
@@ -53,11 +55,17 @@ class Agent:
             llm: 大语言模型实例
             tools: 工具列表
             max_thought_steps: 最大思考步数，防止无限循环
+            knowledge_base: 知识库实例（可选）
+            use_rag: 是否启用 RAG 增强
         """
         # 核心组件
         self.llm = llm  # 大语言模型
         self.tools = tools  # 可用工具列表
         self.max_thought_steps = max_thought_steps  # 最多思考步数
+        
+        # RAG 组件
+        self.knowledge_base = knowledge_base  # 知识库
+        self.use_rag = use_rag and knowledge_base is not None  # 是否启用 RAG
         
         # 提示词模板
         self.main_prompt = get_main_prompt()  # 主循环提示词
@@ -110,12 +118,13 @@ class Agent:
             
         流程:
             1. 初始化记忆系统
-            2. 进入 ReAct 循环：
+            2. 【RAG】检索相关知识（如果启用）
+            3. 进入 ReAct 循环：
                - Think: LLM 思考下一步行动
                - Act: 执行选择的工具
                - Observe: 获取工具执行结果
                - 更新记忆，进入下一轮
-            3. 任务完成后，总结并返回最终答案
+            4. 任务完成后，总结并返回最终答案
         """
         
         # 思考步数计数器
@@ -127,6 +136,20 @@ class Agent:
         # 初始化记忆，标记任务开始
         agent_memory.append(HumanMessage(content="\ninit"))
         agent_memory.append(AIMessage(content="\n开始"))
+        
+        # 【RAG 增强】任务开始前检索相关知识
+        if self.use_rag:
+            relevant_knowledge = self._retrieve_knowledge(task_description)
+            if relevant_knowledge:
+                print(f"\n{'='*60}")
+                print("检索到相关知识：")
+                print(f"{'='*60}")
+                print(relevant_knowledge[:500] + "..." if len(relevant_knowledge) > 500 else relevant_knowledge)
+                print(f"{'='*60}\n")
+                
+                # 将知识注入到记忆中
+                agent_memory.append(HumanMessage(content=f"\n相关知识:\n{relevant_knowledge}"))
+                agent_memory.append(AIMessage(content="\n已了解相关知识"))
         
         # 开始 ReAct 循环
         # 每一轮循环代表一次"思考-行动"过程
@@ -253,6 +276,44 @@ class Agent:
         agent_memory.append(HumanMessage(content=response))
         # 将工具的执行结果添加为 AIMessage
         agent_memory.append(AIMessage(content="\n返回结果:\n" + str(observation)))
+    
+    def _retrieve_knowledge(self, query: str) -> str:
+        """
+        从知识库检索相关知识
+        
+        参数:
+            query: 查询文本
+            
+        返回:
+            格式化的相关知识
+        """
+        if not self.knowledge_base:
+            return ""
+        
+        try:
+            # 检索相关文档
+            results = self.knowledge_base.search(
+                query=query,
+                top_k=3,
+                with_score=True
+            )
+            
+            if not results:
+                return ""
+            
+            # 格式化知识
+            knowledge_text = ""
+            for i, result in enumerate(results, 1):
+                content = result['content']
+                metadata = result['metadata']
+                knowledge_text += f"[参考资料 {i}] 来源: {metadata.get('file_name', '未知')}\n"
+                knowledge_text += f"{content}\n\n"
+            
+            return knowledge_text.strip()
+        
+        except Exception as e:
+            print(f"知识检索失败: {str(e)}")
+            return ""
     
     @staticmethod
     def _chinese_friendly(string: str) -> str:

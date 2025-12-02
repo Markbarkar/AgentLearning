@@ -5,6 +5,7 @@ Qwen2.5-VL Agent API 服务
 """
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import Optional
 from langchain_openai import ChatOpenAI
@@ -15,10 +16,13 @@ from agent_system.config.settings import (
     LLM_MODEL,
     LLM_TEMPERATURE,
     LLM_BASE_URL,
-    LLM_SEED
+    LLM_SEED,
+    KNOWLEDGE_BASE_DOCS_DIR
 )
-from agent_system.tools import Qwen25VLTools, finish_tool
+from agent_system.tools import Qwen25VLTools, finish_tool, create_rag_search_tool
 from agent_system.core import Agent
+from agent_system.rag import KnowledgeBase
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # 创建 FastAPI 应用
@@ -28,6 +32,25 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# 配置CORS
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=[
+#         "http://192.168.2.106:6789",
+#         "http://localhost:6789",
+#         "http://www.zktmai.com:9093",
+#         "http://www.zktmai.com:8001",
+#         "http://www.zktmai.com:6789",
+#         "http://120.237.13.172:9093",
+#         "http://120.237.13.172:8001",
+#         "http://120.237.13.172:6789",
+#     ],
+#     allow_credentials=True,  # 允许凭证
+#     allow_methods=["*"],  # 允许所有方法
+#     allow_headers=["*"],  # 允许所有头
+#     expose_headers=["Content-Length", "Content-Range"],
+#     max_age=3600,  # 预检请求缓存时间
+# )
 
 # 请求模型
 class TaskRequest(BaseModel):
@@ -35,6 +58,34 @@ class TaskRequest(BaseModel):
     task: str = Field(..., description="用户任务描述", example="请提取 /Users/linzaizai/Desktop/Agent/doc/附件九.pdf 的关键信息")
     file_path: Optional[str] = Field(None, description="文件路径（可选）", example="/Users/linzaizai/Desktop/Agent/doc/附件九.pdf")
     temperature: Optional[float] = Field(None, description="LLM 温度参数（可选，默认使用配置值）", ge=0.0, le=1.0)
+    use_rag: Optional[bool] = Field(True, description="是否使用 RAG 增强（默认启用）")
+    user_id: Optional[str] = Field(None, description="用户ID（用于知识库隔离）", example="user_123")
+
+
+class KnowledgeBaseBuildRequest(BaseModel):
+    """知识库构建请求模型"""
+    directory: Optional[str] = Field(None, description="文档目录路径")
+    file_paths: Optional[list] = Field(None, description="文件路径列表")
+    clear_existing: bool = Field(False, description="是否清空已有数据")
+    recursive: bool = Field(True, description="是否递归处理子目录")
+    user_id: Optional[str] = Field(None, description="用户ID（用于知识库隔离）", example="user_123")
+
+
+class KnowledgeBaseSearchRequest(BaseModel):
+    """知识库检索请求模型"""
+    query: str = Field(..., description="查询文本")
+    top_k: int = Field(3, description="返回的文档数量", ge=1, le=10)
+    user_id: Optional[str] = Field(None, description="用户ID（用于知识库隔离）", example="user_123")
+
+
+class KnowledgeBaseInfoRequest(BaseModel):
+    """知识库信息查询请求模型"""
+    user_id: Optional[str] = Field(None, description="用户ID（用于知识库隔离）", example="user_123")
+
+
+class KnowledgeBaseClearRequest(BaseModel):
+    """知识库清空请求模型"""
+    user_id: Optional[str] = Field(None, description="用户ID（用于知识库隔离）", example="user_123")
 
 
 # 响应模型
@@ -45,9 +96,10 @@ class TaskResponse(BaseModel):
     error: Optional[str] = Field(None, description="错误信息（如果有）")
 
 
-# 全局变量：缓存 Agent 实例
-_agent_instance = None
+# 全局变量：缓存实例
+_agent_instances = {}  # {user_id: Agent实例}
 _vl_tools_instance = None
+_knowledge_base_instances = {}  # {user_id: KnowledgeBase实例}，支持多用户隔离
 
 
 def get_vl_tools():
@@ -56,6 +108,37 @@ def get_vl_tools():
     if _vl_tools_instance is None:
         _vl_tools_instance = Qwen25VLTools()
     return _vl_tools_instance
+
+
+def get_knowledge_base(user_id: Optional[str] = None):
+    """
+    获取知识库实例（多用户模式）
+    
+    Args:
+        user_id: 用户ID，用于实现多用户知识库隔离
+        
+    Returns:
+        对应用户的知识库实例
+    """
+    global _knowledge_base_instances
+    
+    # 使用 user_id 或 "public" 作为缓存key
+    cache_key = user_id or "public"
+    
+    if cache_key not in _knowledge_base_instances:
+        try:
+            vl_tools = get_vl_tools()
+            _knowledge_base_instances[cache_key] = KnowledgeBase(
+                user_id=user_id,
+                vl_tools=vl_tools
+            )
+            user_label = f"用户 {user_id}" if user_id else "公共"
+            print(f"✓ {user_label}知识库初始化成功")
+        except Exception as e:
+            print(f"✗ 知识库初始化失败: {str(e)}")
+            return None
+    
+    return _knowledge_base_instances[cache_key]
 
 
 def annotate_pdf_wrapper(vl_tools, input_str):
@@ -96,8 +179,13 @@ def recognize_form_wrapper(vl_tools, input_str):
         return f"错误：{str(e)}"
 
 
-def create_qwen_vl_tools():
-    """创建 Qwen2.5-VL 相关的 LangChain 工具"""
+def create_qwen_vl_tools(user_id: Optional[str] = None):
+    """
+    创建 Qwen2.5-VL 相关的 LangChain 工具
+    
+    Args:
+        user_id: 用户ID，用于创建用户专属的RAG工具
+    """
     vl_tools = get_vl_tools()
     
     # 1. 提取关键信息工具
@@ -197,29 +285,48 @@ def create_qwen_vl_tools():
         func=lambda input_str: recognize_form_wrapper(vl_tools, input_str)
     )
     
-    return [
+    # 5. RAG 检索工具（如果知识库可用）
+    tools = [
         extract_key_info_tool,
         extract_text_tool,
         annotate_pdf_tool,
         recognize_form_tool,
-        finish_tool
     ]
+    
+    # 尝试添加 RAG 工具（使用用户专属知识库）
+    try:
+        kb = get_knowledge_base(user_id)
+        if kb and kb.vector_store.get_collection_count() > 0:
+            rag_tool = create_rag_search_tool(kb)
+            tools.append(rag_tool)
+            user_label = f"用户 {user_id}" if user_id else "公共"
+            print(f"✓ {user_label} RAG 工具已添加")
+    except Exception as e:
+        print(f"RAG 工具初始化失败: {str(e)}")
+    
+    tools.append(finish_tool)
+    return tools
 
 
-def get_agent(temperature: Optional[float] = None):
+def get_agent(user_id: Optional[str] = None, temperature: Optional[float] = None, use_rag: bool = True):
     """
-    获取 Agent 实例（单例模式）
+    获取 Agent 实例（多用户模式）
     
     Args:
+        user_id: 用户ID，用于实现多用户知识库隔离
         temperature: LLM 温度参数，如果为 None 则使用默认配置
+        use_rag: 是否启用 RAG 增强
     
     Returns:
-        Agent 实例
+        对应用户的 Agent 实例
     """
-    global _agent_instance
+    global _agent_instances
     
-    # 如果指定了温度参数，或者还没有创建实例，则创建新实例
-    if temperature is not None or _agent_instance is None:
+    # 使用 user_id 或 "public" 作为缓存key
+    cache_key = user_id or "public"
+    
+    # 如果指定了温度参数，或者还没有创建该用户的实例，则创建新实例
+    if temperature is not None or cache_key not in _agent_instances:
         llm = ChatOpenAI(
             model=LLM_MODEL,
             temperature=temperature if temperature is not None else LLM_TEMPERATURE,
@@ -227,10 +334,25 @@ def get_agent(temperature: Optional[float] = None):
             model_kwargs={"seed": LLM_SEED}
         )
         
-        tools = create_qwen_vl_tools()
-        _agent_instance = Agent(llm=llm, tools=tools)
+        # 创建用户专属工具（包括用户专属RAG工具）
+        tools = create_qwen_vl_tools(user_id)
+        
+        # 获取用户专属知识库（如果启用 RAG）
+        knowledge_base = None
+        if use_rag:
+            try:
+                knowledge_base = get_knowledge_base(user_id)
+            except Exception as e:
+                print(f"知识库加载失败: {str(e)}")
+        
+        _agent_instances[cache_key] = Agent(
+            llm=llm,
+            tools=tools,
+            knowledge_base=knowledge_base,
+            use_rag=use_rag
+        )
     
-    return _agent_instance
+    return _agent_instances[cache_key]
 
 
 @app.get("/agent/tools")
@@ -246,17 +368,200 @@ async def get_tools_info():
         ]
     }
 
-# 添加OPTIONS请求处理（CORS跨域处理）
-@app.options("/agent/{path:path}")
-async def options_route(path: str):
-    return JSONResponse(
-        content="OK",
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
-        },
-    )
+
+@app.post("/agent/knowledge_base/build")
+async def build_knowledge_base(request: KnowledgeBaseBuildRequest):
+    """
+    构建/更新知识库
+    
+    Args:
+        request: 知识库构建请求
+    
+    Returns:
+        构建结果
+    """
+    try:
+        # 获取用户专属知识库实例
+        user_id = request.user_id
+        kb = get_knowledge_base(user_id)
+        if not kb:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "message": "知识库初始化失败",
+                    "user_id": user_id or "public"
+                }
+            )
+        
+        # 从目录构建
+        if request.directory:
+            result = kb.build_from_directory(
+                directory=request.directory,
+                recursive=request.recursive,
+                clear_existing=request.clear_existing
+            )
+        # 从文件列表构建
+        elif request.file_paths:
+            result = kb.build_from_files(
+                file_paths=request.file_paths,
+                clear_existing=request.clear_existing
+            )
+        else:
+            # 使用默认目录
+            result = kb.build_from_directory(
+                directory=KNOWLEDGE_BASE_DOCS_DIR,
+                recursive=request.recursive,
+                clear_existing=request.clear_existing
+            )
+        
+        # 在响应中包含用户ID信息
+        result["user_id"] = user_id or "public"
+        return JSONResponse(content=result)
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"构建失败: {str(e)}",
+                "user_id": request.user_id or "public"
+            }
+        )
+
+
+@app.post("/agent/knowledge_base/info")
+async def get_knowledge_base_info(request: KnowledgeBaseInfoRequest):
+    """
+    获取知识库信息
+    
+    Args:
+        request: 知识库信息查询请求
+    
+    Returns:
+        知识库统计信息
+    """
+    try:
+        user_id = request.user_id
+        kb = get_knowledge_base(user_id)
+        if not kb:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "message": "知识库未初始化",
+                    "user_id": user_id or "public"
+                }
+            )
+        
+        info = kb.get_info()
+        return JSONResponse(content={
+            "success": True,
+            **info
+        })
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"获取信息失败: {str(e)}",
+                "user_id": request.user_id or "public"
+            }
+        )
+
+
+@app.post("/agent/knowledge_base/search")
+async def search_knowledge_base(request: KnowledgeBaseSearchRequest):
+    """
+    检索知识库
+    
+    Args:
+        request: 检索请求
+    
+    Returns:
+        检索结果
+    """
+    try:
+        # 获取用户专属知识库实例
+        user_id = request.user_id
+        kb = get_knowledge_base(user_id)
+        if not kb:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "message": "知识库未初始化",
+                    "user_id": user_id or "public"
+                }
+            )
+        
+        results = kb.search(
+            query=request.query,
+            top_k=request.top_k,
+            with_score=True
+        )
+        
+        return JSONResponse(content={
+            "success": True,
+            "user_id": user_id or "public",
+            "query": request.query,
+            "results": results
+        })
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"检索失败: {str(e)}",
+                "user_id": request.user_id or "public"
+            }
+        )
+
+
+@app.post("/agent/knowledge_base/clear")
+async def clear_knowledge_base(request: KnowledgeBaseClearRequest):
+    """
+    清空知识库
+    
+    Args:
+        request: 知识库清空请求
+    
+    Returns:
+        操作结果
+    """
+    try:
+        user_id = request.user_id
+        kb = get_knowledge_base(user_id)
+        if not kb:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "success": False,
+                    "message": "知识库未初始化",
+                    "user_id": user_id or "public"
+                }
+            )
+        
+        kb.clear()
+        
+        return JSONResponse(content={
+            "success": True,
+            "message": "知识库已清空",
+            "user_id": user_id or "public"
+        })
+    
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"清空失败: {str(e)}",
+                "user_id": request.user_id or "public"
+            }
+        )
+
 
 @app.post("/agent/process_task", response_model=TaskResponse)
 async def process_task(request: TaskRequest):
@@ -275,8 +580,12 @@ async def process_task(request: TaskRequest):
         if request.file_path and request.file_path not in task:
             task = f"{task}\n文件路径: {request.file_path}"
         
-        # 获取 Agent 实例
-        agent = get_agent(temperature=request.temperature)
+        # 获取用户专属 Agent 实例
+        agent = get_agent(
+            user_id=request.user_id,
+            temperature=request.temperature,
+            use_rag=request.use_rag
+        )
         
         # 执行任务
         result = agent.run(task)

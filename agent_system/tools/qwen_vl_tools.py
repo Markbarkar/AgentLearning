@@ -154,6 +154,8 @@ class Qwen25VLTools:
             页面列表
         """
         api_url = f"{self.model_url}/process_file"
+
+        print(f"api_url: {api_url}")
         
         try:
             if file_path:
@@ -236,3 +238,7 @@ class Qwen25VLTools:
         except Exception as e:
             return {"error": str(e)}
 
+if __name__ == "__main__":
+    tools = Qwen25VLTools()
+    result = tools.extract_text(file_path="data/knowledge_base/沈俊华.pdf")
+    print(result)
