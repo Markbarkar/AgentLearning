@@ -93,6 +93,8 @@ class DocumentProcessor:
         
         # 分块处理
         chunks = self.text_splitter.split_text(text)
+
+        # print('text', text)
         
         # 创建 Document 对象
         documents = []
@@ -174,14 +176,17 @@ class DocumentProcessor:
         # 尝试使用 Qwen2.5-VL OCR
         if self.vl_tools:
             print("使用 Qwen2.5-VL OCR")
+            # print('file_path', file_path)
             try:
                 pages = self.vl_tools.extract_text(file_path=str(file_path))
+                # print('pages', pages)
                 if pages and not any('error' in page for page in pages):
-                    # 合并所有页面的文本
+                    # 合并所有页面的文本 12.2修正：返回的page的text字段修改成了content字段导致拿不到数据
                     text = "\n\n".join([
-                        page.get('text', '') for page in pages
-                        if 'text' in page
+                        page.get('content', '') for page in pages
+                        if 'content' in page
                     ])
+                    # print('text', text)
                     if text.strip():
                         return text
             except Exception as e:
@@ -239,3 +244,8 @@ class DocumentProcessor:
             raise Exception(f"Word 文档读取失败: {str(e)}")
 
 
+if __name__ == "__main__":
+    file_path = Path("data/knowledge_base/temp_uploads/附件二.pdf")
+    document_processor = DocumentProcessor()
+    text = document_processor.vl_tools.extract_text(file_path=str(file_path))
+    print('text', text)

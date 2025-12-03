@@ -139,6 +139,8 @@ class KnowledgeBase:
             print("清空已有数据...")
             self.vector_store.clear_collection()
         
+        # print('directory', directory)
+        
         # 处理文档
         documents = self.document_processor.process_directory(
             directory=directory,
@@ -147,10 +149,10 @@ class KnowledgeBase:
         )
         
         if not documents:
-            print("\n未找到可处理的文档")
+            # print("\n未识别到信息")
             return {
                 "success": False,
-                "message": "未找到可处理的文档",
+                "message": "暂未识别到信息",
                 "documents_processed": 0,
                 "chunks_added": 0
             }

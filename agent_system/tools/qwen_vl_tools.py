@@ -169,6 +169,9 @@ class Qwen25VLTools:
             
             response.raise_for_status()
             result = response.json()
+            # result示例格式：
+            # [{'page': 1, 'content': '见如下：该项目地块...', 'processing_time': '4.27秒'}]
+            # print('result', result.get("pages", []))
             return result.get("pages", [])
         except Exception as e:
             return [{"error": str(e)}]
@@ -240,5 +243,5 @@ class Qwen25VLTools:
 
 if __name__ == "__main__":
     tools = Qwen25VLTools()
-    result = tools.extract_text(file_path="data/knowledge_base/沈俊华.pdf")
+    result = tools.extract_text(file_path="data/knowledge_base/temp_uploads/附件二.pdf")
     print(result)
