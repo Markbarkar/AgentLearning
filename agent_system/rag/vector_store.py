@@ -193,6 +193,137 @@ class VectorStoreManager:
                 print(f"集合 {self.collection_name} 已经是空的")
         except Exception as e:
             print(f"清空集合失败: {str(e)}")
+    
+    def get_all_documents(self) -> Dict[str, Any]:
+        """
+        获取collection中的所有文档及其metadata
+        
+        Returns:
+            包含所有文档ID、metadata和内容的字典
+        """
+        try:
+            collection = self.vector_store._collection
+            result = collection.get(include=['metadatas', 'documents'])
+            return result
+        except Exception as e:
+            print(f"获取文档失败: {str(e)}")
+            return {'ids': [], 'metadatas': [], 'documents': []}
+    
+    def get_documents_by_source(self, source_path: str) -> Dict[str, Any]:
+        """
+        根据文件路径获取所有相关文档chunks
+        
+        Args:
+            source_path: 文件路径（完整路径或文件名）
+            
+        Returns:
+            包含该文件所有chunks的字典
+        """
+        try:
+            # 获取所有文档
+            all_docs = self.get_all_documents()
+            
+            # 筛选匹配的文档
+            matching_indices = []
+            for i, metadata in enumerate(all_docs.get('metadatas', [])):
+                if metadata:
+                    # 支持完整路径匹配或文件名匹配
+                    source = metadata.get('source', '')
+                    file_name = metadata.get('file_name', '')
+                    if source == source_path or file_name == source_path or source.endswith(source_path):
+                        matching_indices.append(i)
+            
+            # 返回匹配的文档
+            if matching_indices:
+                return {
+                    'ids': [all_docs['ids'][i] for i in matching_indices],
+                    'metadatas': [all_docs['metadatas'][i] for i in matching_indices],
+                    'documents': [all_docs['documents'][i] for i in matching_indices]
+                }
+            else:
+                return {'ids': [], 'metadatas': [], 'documents': []}
+        except Exception as e:
+            print(f"获取文档失败: {str(e)}")
+            return {'ids': [], 'metadatas': [], 'documents': []}
+    
+    def delete_by_source(self, source_path: str) -> int:
+        """
+        根据文件路径删除所有相关文档chunks
+        
+        Args:
+            source_path: 文件路径（完整路径或文件名）
+            
+        Returns:
+            删除的文档数量
+        """
+        try:
+            # 获取该文件的所有文档
+            docs = self.get_documents_by_source(source_path)
+            ids = docs.get('ids', [])
+            
+            if ids:
+                self.delete_documents(ids)
+                print(f"✓ 已删除文件 {source_path} 的 {len(ids)} 个文档块")
+                return len(ids)
+            else:
+                print(f"未找到文件 {source_path} 的文档")
+                return 0
+        except Exception as e:
+            print(f"删除文档失败: {str(e)}")
+            return 0
+    
+    def list_unique_files(self) -> List[Dict[str, Any]]:
+        """
+        获取唯一文件列表（聚合chunks）
+        
+        Returns:
+            文件列表，每个文件包含：file_name, file_type, chunk_count, source
+        """
+        try:
+            all_docs = self.get_all_documents()
+            metadatas = all_docs.get('metadatas', [])
+            
+            # 使用字典聚合文件信息
+            files_dict = {}
+            for metadata in metadatas:
+                if metadata:
+                    source = metadata.get('source', '')
+                    file_name = metadata.get('file_name', '')
+                    file_type = metadata.get('file_type', '')
+                    
+                    if file_name:
+                        if file_name not in files_dict:
+                            files_dict[file_name] = {
+                                'file_name': file_name,
+                                'file_type': file_type,
+                                'chunk_count': 0,
+                                'source': source
+                            }
+                        files_dict[file_name]['chunk_count'] += 1
+            
+            # 转换为列表
+            files_list = list(files_dict.values())
+            
+            # 确保所有字段都是字符串类型，转换bytes为str
+            for file_info in files_list:
+                for key, value in file_info.items():
+                    if isinstance(value, bytes):
+                        try:
+                            file_info[key] = value.decode('utf-8')
+                        except UnicodeDecodeError:
+                            try:
+                                file_info[key] = value.decode('gbk')
+                            except UnicodeDecodeError:
+                                # 如果都失败，使用repr显示
+                                file_info[key] = repr(value)
+            
+            # 按文件名排序
+            files_list.sort(key=lambda x: x['file_name'])
+            
+            return files_list
+        except Exception as e:
+            print(f"获取文件列表失败: {str(e)}")
+            return []
 
 
 

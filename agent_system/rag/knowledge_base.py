@@ -309,11 +309,16 @@ class KnowledgeBase:
         """
         total_count = self.vector_store.get_collection_count()
         
+        # 获取文档数量（唯一文件数量）
+        unique_files = self.vector_store.list_unique_files()
+        document_count = len(unique_files)
+        
         return {
             "user_id": self.user_id or "public",
             "collection_name": self.vector_store.collection_name,
             # "persist_directory": self.vector_store.persist_directory,
             "chunks_count": total_count,
+            "document_count": document_count,
             # "embedding_model": self.embeddings.model
         }
     
@@ -322,6 +327,179 @@ class KnowledgeBase:
         清空知识库
         """
         self.vector_store.clear_collection()
+    
+    def list_documents(self) -> Dict[str, Any]:
+        """
+        列出所有文档（基础信息）
+        
+        Returns:
+            包含文档列表的字典
+        """
+        try:
+            files = self.vector_store.list_unique_files()
+            
+            # 格式化返回信息
+            documents = []
+            for file_info in files:
+                documents.append({
+                    "file_name": file_info['file_name'],
+                    "file_type": file_info['file_type'],
+                    "chunk_count": file_info['chunk_count']
+                })
+            
+            return {
+                "success": True,
+                "documents": documents,
+                "total_files": len(documents)
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"获取文档列表失败: {str(e)}",
+                "documents": [],
+                "total_files": 0
+            }
+    
+    def get_document_detail(self, file_name: str) -> Dict[str, Any]:
+        """
+        获取单个文档详情
+        
+        Args:
+            file_name: 文件名
+            
+        Returns:
+            文档详细信息
+        """
+        try:
+            # 获取该文件的所有chunks
+            docs = self.vector_store.get_documents_by_source(file_name)
+            
+            if not docs.get('ids'):
+                return {
+                    "success": False,
+                    "message": f"未找到文档: {file_name}"
+                }
+            
+            # 提取基本信息
+            metadatas = docs.get('metadatas', [])
+            documents = docs.get('documents', [])
+            
+            if not metadatas:
+                return {
+                    "success": False,
+                    "message": "文档数据异常"
+                }
+            
+            first_metadata = metadatas[0]
+            
+            # 构建chunks预览（每个chunk显示前100个字符）
+            chunks = []
+            for i, (metadata, content) in enumerate(zip(metadatas, documents)):
+                chunk_id = metadata.get('chunk_id', i)
+                preview = content[:100] + "..." if len(content) > 100 else content
+                chunks.append({
+                    "chunk_id": chunk_id,
+                    "preview": preview
+                })
+            
+            # 按chunk_id排序
+            chunks.sort(key=lambda x: x['chunk_id'])
+            
+            return {
+                "success": True,
+                "file_name": first_metadata.get('file_name', ''),
+                "file_type": first_metadata.get('file_type', ''),
+                "chunk_count": len(chunks),
+                "source_path": first_metadata.get('source', ''),
+                "chunks": chunks
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"获取文档详情失败: {str(e)}"
+            }
+    
+    def delete_document(self, file_name: str) -> Dict[str, Any]:
+        """
+        删除指定文档
+        
+        Args:
+            file_name: 文件名
+            
+        Returns:
+            删除结果
+        """
+        try:
+            # 删除该文件的所有chunks
+            deleted_count = self.vector_store.delete_by_source(file_name)
+            
+            if deleted_count > 0:
+                return {
+                    "success": True,
+                    "message": f"成功删除文档: {file_name}",
+                    "deleted_chunks": deleted_count
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"未找到文档: {file_name}",
+                    "deleted_chunks": 0
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"删除文档失败: {str(e)}",
+                "deleted_chunks": 0
+            }
+    
+    def update_document(self, file_path: str, file_name: Optional[str] = None) -> Dict[str, Any]:
+        """
+        更新指定文档（先删除再重新添加）
+        
+        Args:
+            file_path: 新文件路径
+            file_name: 要替换的文件名（如果为None，则使用file_path的文件名）
+            
+        Returns:
+            更新结果
+        """
+        try:
+            # 确定要替换的文件名
+            if file_name is None:
+                file_name = Path(file_path).name
+            
+            # 1. 先删除旧文档
+            print(f"删除旧文档: {file_name}")
+            delete_result = self.delete_document(file_name)
+            
+            # 2. 处理新文档
+            print(f"处理新文档: {file_path}")
+            documents = self.document_processor.process_file(file_path)
+            
+            if not documents:
+                return {
+                    "success": False,
+                    "message": "新文档处理失败",
+                    "deleted_chunks": delete_result.get('deleted_chunks', 0),
+                    "added_chunks": 0
+                }
+            
+            # 3. 添加到向量数据库
+            print(f"添加新文档到向量数据库...")
+            ids = self.vector_store.add_documents(documents)
+            
+            return {
+                "success": True,
+                "message": f"成功更新文档: {file_name}",
+                "deleted_chunks": delete_result.get('deleted_chunks', 0),
+                "added_chunks": len(documents),
+                "document_ids": ids
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "message": f"更新文档失败: {str(e)}"
+            }
 
 
 
