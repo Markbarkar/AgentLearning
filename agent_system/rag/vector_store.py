@@ -193,7 +193,7 @@ class VectorStoreManager:
                 print(f"集合 {self.collection_name} 已经是空的")
         except Exception as e:
             print(f"清空集合失败: {str(e)}")
-    
+
     def get_all_documents(self) -> Dict[str, Any]:
         """
         获取collection中的所有文档及其metadata

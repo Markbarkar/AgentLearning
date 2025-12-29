@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 从 API 模块导入路由
-from agent_system.api.routes import knowledge_base, documents, agent
+from agent_system.api.routes import knowledge_base, documents, agent, mcp
 
 
 # 创建 FastAPI 应用
@@ -44,6 +44,7 @@ app = FastAPI(
 app.include_router(knowledge_base.router)
 app.include_router(documents.router)
 app.include_router(agent.router)
+app.include_router(mcp.router)
 
 
 if __name__ == "__main__":

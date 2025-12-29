@@ -327,7 +327,7 @@ class KnowledgeBase:
         清空知识库
         """
         self.vector_store.clear_collection()
-    
+
     def list_documents(self) -> Dict[str, Any]:
         """
         列出所有文档（基础信息）

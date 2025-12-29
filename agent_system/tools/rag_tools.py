@@ -60,8 +60,7 @@ def create_rag_search_tool(knowledge_base) -> Tool:
     # 创建工具
     tool = Tool(
         name="search_knowledge_base",
-        description="""检索法律知识库，查找相关的法律文书和知识。
-
+        description="""用于回想二次检索法律知识库，查找相关的法律文书和知识，用于辅助决策。
         输入参数：
         - query: 查询文本（必填），描述你要查找的信息
 

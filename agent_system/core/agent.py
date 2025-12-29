@@ -103,7 +103,7 @@ class Agent:
             )
         )
     
-    def run(self, task_description: str) -> str:
+    def run(self, task_description: str, use_rag: Optional[bool] = None) -> str:
         """
         Agent 主流程 - ReAct 循环的核心
         
@@ -112,6 +112,7 @@ class Agent:
         
         参数:
             task_description: 任务描述（如"帮我查询24年6月1日早上去上海的火车票"）
+            use_rag: 是否使用RAG增强，为None时使用实例默认值
             
         返回:
             最终答案字符串
@@ -127,6 +128,26 @@ class Agent:
             4. 任务完成后，总结并返回最终答案
         """
         
+        # 确定是否使用RAG（支持运行时动态切换）
+        should_use_rag = use_rag if use_rag is not None else self.use_rag
+        
+        # 根据 use_rag 参数动态确定可用工具列表
+        if should_use_rag:
+            available_tools = self.tools
+            current_llm_chain = self.llm_chain
+        else:
+            # 过滤掉 RAG 相关工具
+            available_tools = [t for t in self.tools if t.name != "search_knowledge_base"]
+            # 使用过滤后的工具列表生成新的 prompt 和 chain
+            filtered_prompt = self.main_prompt.partial(
+                tools=render_text_description(available_tools),
+                format_instructions=self._chinese_friendly(
+                    self.output_parser.get_format_instructions(),
+                )
+            )
+            current_llm_chain = filtered_prompt | self.llm | StrOutputParser()
+            print("⚠ RAG 已禁用，search_knowledge_base 工具不可用")
+        
         # 思考步数计数器
         thought_step_count = 0
         
@@ -138,7 +159,7 @@ class Agent:
         agent_memory.append(AIMessage(content="\n开始"))
         
         # 【RAG 增强】任务开始前检索相关知识
-        if self.use_rag:
+        if should_use_rag and self.knowledge_base:
             relevant_knowledge = self._retrieve_knowledge(task_description)
             if relevant_knowledge:
                 print(f"\n{'='*60}")
@@ -159,7 +180,8 @@ class Agent:
             # 【Think】步骤：让 LLM 思考并决定下一步行动
             action, response = self._step(
                 task_description=task_description,
-                memory=agent_memory
+                memory=agent_memory,
+                llm_chain=current_llm_chain
             )
             
             # 检查是否完成任务
@@ -168,7 +190,7 @@ class Agent:
                 break
             
             # 【Act】步骤：执行 LLM 选择的工具
-            observation = self._exec_action(action)
+            observation = self._exec_action(action, available_tools)
             print(f"----\nObservation:\n{observation}")
             
             # 【Update Memory】步骤：更新记忆
@@ -192,7 +214,7 @@ class Agent:
         
         return reply
     
-    def _step(self, task_description: str, memory) -> Tuple[Action, str]:
+    def _step(self, task_description: str, memory, llm_chain=None) -> Tuple[Action, str]:
         """
         执行一步思考（ReAct 循环中的 Think 步骤）
         
@@ -204,6 +226,7 @@ class Agent:
         参数:
             task_description: 原始任务描述
             memory: 历史记忆（包含之前的所有思考和行动）
+            llm_chain: 可选的 LLM chain，用于支持动态工具列表
             
         返回:
             action: 要执行的动作（工具名称+参数）
@@ -211,9 +234,12 @@ class Agent:
         """
         response = ""
         
+        # 使用传入的 chain 或默认 chain
+        chain = llm_chain if llm_chain is not None else self.llm_chain
+        
         # 使用流式调用 LLM
         # stream() 会逐个 token 返回结果，实现实时输出
-        for s in self.llm_chain.stream({
+        for s in chain.stream({
             "task_description": task_description,  # 任务描述
             "memory": memory  # 历史记忆
         }, config={
@@ -228,7 +254,7 @@ class Agent:
         action = self.output_parser.parse(response)
         return action, response
     
-    def _exec_action(self, action: Action) -> str:
+    def _exec_action(self, action: Action, tools: Optional[List[BaseTool]] = None) -> str:
         """
         执行动作（ReAct 循环中的 Act 步骤）
         
@@ -236,14 +262,18 @@ class Agent:
         
         参数:
             action: LLM 决定的动作（包含工具名称和参数）
+            tools: 可选的工具列表，用于支持动态工具过滤
             
         返回:
             observation: 工具执行的结果（字符串格式）
         """
         observation = "没有找到工具"
         
+        # 使用传入的工具列表或默认工具列表
+        available_tools = tools if tools is not None else self.tools
+        
         # 遍历所有可用工具，找到匹配的工具
-        for tool in self.tools:
+        for tool in available_tools:
             if tool.name == action.name:
                 try:
                     # 执行工具，传入 LLM 提供的参数

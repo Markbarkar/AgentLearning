@@ -72,3 +72,24 @@ class DocumentDeleteRequest(BaseModel):
     file_name: str = Field(..., description="文件名", example="附件九.pdf")
     user_id: Optional[str] = Field(None, description="用户ID（用于知识库隔离）", example="1")
 
+
+# ==================== MCP 服务器相关模型 ====================
+
+class MCPServerCreateRequest(BaseModel):
+    """MCP 服务器创建请求模型"""
+    name: str = Field(..., description="服务器名称（唯一标识）", example="my-server")
+    command: str = Field("npx", description="启动命令", example="npx")
+    args: list = Field(..., description="命令参数列表", example=["-y", "@modelcontextprotocol/server-filesystem", "."])
+    env: Optional[dict] = Field(None, description="环境变量", example={"API_KEY": "${MY_API_KEY}"})
+    enabled: bool = Field(True, description="是否启用")
+    description: str = Field("", description="服务器描述", example="文件系统操作工具")
+
+
+class MCPServerUpdateRequest(BaseModel):
+    """MCP 服务器更新请求模型"""
+    command: Optional[str] = Field(None, description="启动命令")
+    args: Optional[list] = Field(None, description="命令参数列表")
+    env: Optional[dict] = Field(None, description="环境变量")
+    enabled: Optional[bool] = Field(None, description="是否启用")
+    description: Optional[str] = Field(None, description="服务器描述")
+

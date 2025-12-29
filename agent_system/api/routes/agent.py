@@ -45,15 +45,14 @@ async def process_task(request: TaskRequest):
         if request.file_path and request.file_path not in task:
             task = f"{task}\n文件路径: {request.file_path}"
         
-        # 获取用户专属 Agent 实例
+        # 获取用户专属 Agent 实例（始终带RAG能力）
         agent = get_agent(
             user_id=request.user_id,
-            temperature=request.temperature,
-            use_rag=request.use_rag
+            temperature=request.temperature
         )
         
-        # 执行任务
-        result = agent.run(task)
+        # 执行任务，use_rag 在运行时动态决定
+        result = agent.run(task, use_rag=request.use_rag)
         
         return TaskResponse(
             success=True,
