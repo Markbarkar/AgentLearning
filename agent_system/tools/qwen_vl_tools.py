@@ -166,8 +166,8 @@ class Qwen25VLTools:
             files["image"].close()
     
     @register_tool(
-        name="extract_document_text",
-        description="""提取文档全文内容（OCR），支持 PDF 和图片。
+        name="extract_pdf_text",
+        description="""提取本地pdf或图片的全文内容（OCR），仅支持 PDF 和图片！
 
 输入：文件路径
 输出：文档的完整文本内容
@@ -181,7 +181,7 @@ class Qwen25VLTools:
         temperature: float = 0.7
     ) -> List[Dict[str, Any]]:
         """
-        提取文档全文（OCR）
+        提取本地pdf的全文（OCR）
         
         Args:
             file_path: 文件路径

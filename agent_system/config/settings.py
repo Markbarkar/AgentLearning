@@ -21,7 +21,7 @@ LLM_API_KEY = os.getenv("OPENAI_API_KEY")  # 从环境变量获取 API 密钥
 LLM_SEED = 42  # 随机种子，确保结果可复现
 
 # ==================== Agent 配置 ====================
-MAX_THOUGHT_STEPS = 10  # 最大思考步数，防止死循环
+MAX_THOUGHT_STEPS = 15  # 最大思考步数，防止死循环
 AGENT_VERBOSE = True  # 是否打印详细日志
 
 # ==================== 记忆配置 ====================

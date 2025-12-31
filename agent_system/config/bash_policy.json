@@ -1,0 +1,103 @@
+{
+  "enabled": true,
+  "description": "Bash 工具安全策略配置",
+  
+  "allowed_directories": [
+    "/projects/AgentLearning/workspace",
+    "/projects/AgentLearning/data",
+    "/home/userss/.mcp-downloads"
+  ],
+  
+  "command_whitelist": {
+    "ls": {
+      "description": "列出目录内容",
+      "allowed_args": ["-l", "-la", "-lh", "-R", "-a", "-1"],
+      "example": "ls -la /path/to/dir"
+    },
+    "cat": {
+      "description": "查看文件内容",
+      "max_file_size_kb": 100,
+      "example": "cat file.txt"
+    },
+    "head": {
+      "description": "查看文件开头内容",
+      "allowed_args": ["-n"],
+      "example": "head -n 20 file.txt"
+    },
+    "tail": {
+      "description": "查看文件结尾内容",
+      "allowed_args": ["-n", "-f"],
+      "example": "tail -n 20 file.txt"
+    },
+    "grep": {
+      "description": "搜索文本内容",
+      "allowed_args": ["-r", "-n", "-i", "-l", "-c", "-v", "-E"],
+      "example": "grep -rn 'pattern' /path"
+    },
+    "find": {
+      "description": "查找文件",
+      "allowed_args": ["-name", "-type", "-mtime", "-size", "-maxdepth"],
+      "example": "find /path -name '*.py'"
+    },
+    "wc": {
+      "description": "统计行数/字数/字节数",
+      "allowed_args": ["-l", "-w", "-c"],
+      "example": "wc -l file.txt"
+    },
+    "pwd": {
+      "description": "显示当前工作目录",
+      "example": "pwd"
+    },
+    "echo": {
+      "description": "输出文本",
+      "example": "echo 'hello'"
+    },
+    "file": {
+      "description": "查看文件类型",
+      "example": "file document.pdf"
+    },
+    "stat": {
+      "description": "查看文件详细信息",
+      "example": "stat file.txt"
+    },
+    "tree": {
+      "description": "以树形结构显示目录",
+      "allowed_args": ["-L", "-d", "-a"],
+      "example": "tree -L 2 /path"
+    }
+  },
+  
+  "blocked_patterns": [
+    "rm -rf",
+    "rm -r",
+    "sudo",
+    "chmod",
+    "chown",
+    "chgrp",
+    "> /dev",
+    "mkfs",
+    "dd if=",
+    ":(){ :|:& };:",
+    "/etc/passwd",
+    "/etc/shadow",
+    "wget",
+    "curl",
+    "nc ",
+    "netcat",
+    "ssh",
+    "scp",
+    "eval",
+    "exec"
+  ],
+  
+  "dangerous_chars": [";", "&&", "||", "|", "`", "$(", "${", ">", ">>", "<", "&"],
+  
+  "timeout_seconds": 30,
+  "max_output_bytes": 102400,
+  
+  "logging": {
+    "enabled": true,
+    "log_file": "logs/bash_commands.log"
+  }
+}
+

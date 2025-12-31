@@ -1,0 +1,36 @@
+2025-12-31 12:34:06,890 | INFO | 尝试执行: ls -la (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:34:06,896 | INFO | 命令执行成功: ls -la
+2025-12-31 12:46:44,066 | INFO | 尝试执行: ls -la (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:46:44,072 | INFO | 命令执行成功: ls -la
+2025-12-31 12:51:34,366 | INFO | 尝试执行: cat /projects/AgentLearning/workspace/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:51:34,371 | INFO | 命令执行成功: cat /projects/AgentLearning/workspace/介绍.txt
+2025-12-31 12:51:38,999 | INFO | 尝试执行: ls -la (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:51:39,005 | INFO | 命令执行成功: ls -la
+2025-12-31 12:51:41,918 | INFO | 尝试执行: find /projects/AgentLearning -name '*介绍*' -o -name '*intro*' -o -name '*readme*' (目录: /projects/AgentLearning)
+2025-12-31 12:51:41,919 | WARNING | 命令被拒绝: 目录 '/projects/AgentLearning' 不在允许范围内。允许的目录: ['/projects/AgentLearning/workspace', '/projects/AgentLearning/data', '/home/userss/.mcp-downloads']
+2025-12-31 12:51:44,980 | INFO | 尝试执行: find /projects/AgentLearning/workspace -name '*介绍*' -o -name '*intro*' -o -name '*readme*' (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:51:44,986 | INFO | 命令执行成功: find /projects/AgentLearning/workspace -name '*介绍*' -o -name '*intro*' -o -name '*readme*'
+2025-12-31 12:55:15,544 | INFO | 尝试执行: cat /projects/AgentLearning/workspace/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:55:15,549 | INFO | 命令执行成功: cat /projects/AgentLearning/workspace/介绍.txt
+2025-12-31 12:55:17,871 | INFO | 尝试执行: ls -la /projects/AgentLearning/workspace (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:55:17,878 | INFO | 命令执行成功: ls -la /projects/AgentLearning/workspace
+2025-12-31 12:55:20,439 | INFO | 尝试执行: find /projects/AgentLearning -name '*介绍*' -type f 2>/dev/null (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:55:20,440 | WARNING | 命令被拒绝: 不允许使用字符: '>'
+2025-12-31 12:55:22,711 | INFO | 尝试执行: find /projects/AgentLearning -name '*介绍*' -type f (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:55:22,713 | WARNING | 命令被拒绝: 路径 '/projects/AgentLearning' 不在允许的目录范围内
+2025-12-31 12:55:28,298 | INFO | 尝试执行: ls -la /projects/AgentLearning/data (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:55:28,303 | INFO | 命令执行成功: ls -la /projects/AgentLearning/data
+2025-12-31 12:55:48,902 | INFO | 尝试执行: cat /home/userss/.mcp-downloads/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:55:48,906 | ERROR | 命令执行失败: 'utf-8' codec can't decode byte 0xb0 in position 8: invalid start byte
+2025-12-31 12:55:54,096 | INFO | 尝试执行: file /home/userss/.mcp-downloads/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:55:54,112 | INFO | 命令执行成功: file /home/userss/.mcp-downloads/介绍.txt
+2025-12-31 12:56:01,081 | INFO | 尝试执行: iconv -f ISO-8859-1 -t UTF-8 /home/userss/.mcp-downloads/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:56:01,082 | WARNING | 命令被拒绝: 命令 'iconv' 不在白名单中。允许的命令: ['ls', 'cat', 'head', 'tail', 'grep', 'find', 'wc', 'pwd', 'echo', 'du', 'df', 'file', 'stat', 'tree']
+2025-12-31 12:56:08,579 | INFO | 尝试执行: cp /home/userss/.mcp-downloads/介绍.txt /projects/AgentLearning/workspace/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:56:08,580 | WARNING | 命令被拒绝: 命令 'cp' 不在白名单中。允许的命令: ['ls', 'cat', 'head', 'tail', 'grep', 'find', 'wc', 'pwd', 'echo', 'du', 'df', 'file', 'stat', 'tree']
+2025-12-31 12:56:16,507 | INFO | 尝试执行: head -n 10 /home/userss/.mcp-downloads/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 12:56:16,512 | ERROR | 命令执行失败: 'utf-8' codec can't decode byte 0xb0 in position 8: invalid start byte
+2025-12-31 12:59:56,544 | INFO | 尝试执行: cat 介绍.txt (目录: /home/userss/.mcp-downloads)
+2025-12-31 12:59:56,554 | INFO | 命令执行成功: cat 介绍.txt
+2025-12-31 13:01:59,216 | INFO | 尝试执行: cat /home/userss/.mcp-downloads/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 13:01:59,223 | INFO | 命令执行成功: cat /home/userss/.mcp-downloads/介绍.txt
