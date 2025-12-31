@@ -34,3 +34,21 @@
 2025-12-31 12:59:56,554 | INFO | 命令执行成功: cat 介绍.txt
 2025-12-31 13:01:59,216 | INFO | 尝试执行: cat /home/userss/.mcp-downloads/介绍.txt (目录: /projects/AgentLearning/workspace)
 2025-12-31 13:01:59,223 | INFO | 命令执行成功: cat /home/userss/.mcp-downloads/介绍.txt
+2025-12-31 15:27:57,472 | INFO | 尝试执行: cat /home/userss/.mcp-downloads/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 15:27:57,480 | INFO | 命令执行成功: cat /home/userss/.mcp-downloads/介绍.txt
+2025-12-31 15:34:13,671 | INFO | 尝试执行: curl -L 'https://yunpan.com/surl_yNdK4mn9xjv' -o /projects/AgentLearning/workspace/introduction.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 15:34:13,673 | WARNING | 命令被拒绝: 命令 'curl' 不在白名单中。允许的命令: ['ls', 'cat', 'head', 'tail', 'grep', 'find', 'wc', 'pwd', 'echo', 'file', 'stat', 'tree']
+2025-12-31 15:42:23,647 | INFO | 尝试执行: cat /home/userss/.mcp-downloads/介绍.txt (目录: /projects/AgentLearning/workspace)
+2025-12-31 15:42:23,651 | INFO | 命令执行成功: cat /home/userss/.mcp-downloads/介绍.txt
+2025-12-31 16:33:08,577 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name "*.pdf" -o -name "*.doc" -o -name "*.docx" -o -name "*.txt" | head -20 (目录: /projects/AgentLearning/workspace)
+2025-12-31 16:33:08,578 | WARNING | 命令被拒绝: 不允许使用字符: '|'
+2025-12-31 16:33:11,649 | INFO | 尝试执行: find /projects/AgentLearning/workspace -type f -name "*迪普方*" (目录: /projects/AgentLearning/workspace)
+2025-12-31 16:33:11,656 | INFO | 命令执行成功: find /projects/AgentLearning/workspace -type f -name "*迪普方*"
+2025-12-31 16:33:15,526 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f | grep -i "迪普方" (目录: /projects/AgentLearning/workspace)
+2025-12-31 16:33:15,527 | WARNING | 命令被拒绝: 不允许使用字符: '|'
+2025-12-31 16:33:18,146 | INFO | 尝试执行: find /projects/AgentLearning/workspace -type f (目录: /projects/AgentLearning/workspace)
+2025-12-31 16:33:18,152 | INFO | 命令执行成功: find /projects/AgentLearning/workspace -type f
+2025-12-31 16:33:20,768 | INFO | 尝试执行: ls -la /projects/AgentLearning/workspace (目录: /projects/AgentLearning/workspace)
+2025-12-31 16:33:20,775 | INFO | 命令执行成功: ls -la /projects/AgentLearning/workspace
+2025-12-31 16:33:23,714 | INFO | 尝试执行: find /projects/AgentLearning/data -type f (目录: /projects/AgentLearning/workspace)
+2025-12-31 16:33:23,721 | INFO | 命令执行成功: find /projects/AgentLearning/data -type f

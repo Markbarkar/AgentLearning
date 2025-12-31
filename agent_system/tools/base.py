@@ -5,8 +5,10 @@
 支持多个工具类实例
 """
 
+import inspect
 from typing import List, Dict, Any, Optional, Callable, Type
-from langchain_core.tools import Tool
+from langchain_core.tools import Tool, StructuredTool
+from pydantic import BaseModel, Field, create_model
 
 
 class ToolRegistry:
@@ -206,14 +208,70 @@ def _parse_form_input(input_str: str) -> Dict[str, Any]:
     return {"file_path": input_str.strip()}
 
 
+def _get_method_params(method: Callable) -> List[Dict[str, Any]]:
+    """
+    获取方法的参数信息（排除 self）
+    
+    Returns:
+        [{"name": str, "type": type, "default": Any, "required": bool}, ...]
+    """
+    sig = inspect.signature(method)
+    params = []
+    
+    for param_name, param in sig.parameters.items():
+        if param_name == 'self':
+            continue
+        
+        # 获取类型注解
+        param_type = param.annotation if param.annotation != inspect.Parameter.empty else str
+        
+        # 获取默认值
+        has_default = param.default != inspect.Parameter.empty
+        default_value = param.default if has_default else None
+        
+        params.append({
+            "name": param_name,
+            "type": param_type,
+            "default": default_value,
+            "required": not has_default
+        })
+    
+    return params
+
+
+def _create_args_schema(tool_name: str, params: List[Dict[str, Any]]) -> Type[BaseModel]:
+    """
+    动态创建 Pydantic 模型作为 StructuredTool 的 args_schema
+    """
+    fields = {}
+    
+    for param in params:
+        param_name = param["name"]
+        param_type = param["type"]
+        required = param["required"]
+        default_value = param["default"]
+        
+        # 将类型映射为 Pydantic 支持的类型
+        if param_type == inspect.Parameter.empty:
+            param_type = str
+        
+        if required:
+            fields[param_name] = (param_type, Field(..., description=f"参数 {param_name}"))
+        else:
+            fields[param_name] = (param_type, Field(default=default_value, description=f"参数 {param_name}"))
+    
+    # 动态创建模型
+    model = create_model(f"{tool_name}Args", **fields)
+    return model
+
+
 def get_all_tools(vl_tools=None) -> List[Tool]:
     """
     获取所有已注册的工具
     
     将注册的方法转换为 LangChain Tool 对象
-    支持多个工具类实例：
-    1. 优先从 ToolRegistry._instances 查找实例
-    2. 如果找不到，尝试从 vl_tools 参数获取（向后兼容）
+    - 单参数方法：使用 Tool
+    - 多参数方法：使用 StructuredTool（支持 JSON 格式输入）
     
     Args:
         vl_tools: Qwen25VLTools 实例（可选，向后兼容）
@@ -256,32 +314,59 @@ def get_all_tools(vl_tools=None) -> List[Tool]:
             print(f"⚠️ 工具 '{name}' (方法: {method_name}, 类: {class_name}) 未找到绑定实例，跳过")
             continue
         
-        # 创建包装函数
-        def make_wrapper(m, parser, tool_name):
-            def wrapper(input_str: str) -> str:
-                try:
-                    # 解析输入
-                    kwargs = parser(input_str)
-                    # 调用实际方法
-                    result = m(**kwargs)
-                    return str(result)
-                except TypeError as e:
-                    # 参数不匹配，尝试直接传入字符串
-                    try:
-                        result = m(input_str)
-                        return str(result)
-                    except Exception as inner_e:
-                        return f"错误（参数解析）: {str(e)}"
-                except Exception as e:
-                    return f"错误: {str(e)}"
-            return wrapper
+        # 获取方法参数
+        params = _get_method_params(method)
         
-        tools.append(Tool(
-            name=name,
-            description=description,
-            func=make_wrapper(bound_method, input_parser, name)
-        ))
-        print(f"  ✓ 已注册工具: {name} (实例: {instance.__class__.__name__})")
+        # 根据参数数量选择 Tool 类型
+        if len(params) <= 1:
+            # 单参数：使用普通 Tool
+            def make_wrapper(m, parser, tool_name):
+                def wrapper(input_str: str) -> str:
+                    try:
+                        kwargs = parser(input_str)
+                        result = m(**kwargs)
+                        return str(result)
+                    except TypeError as e:
+                        try:
+                            result = m(input_str)
+                            return str(result)
+                        except Exception:
+                            return f"错误（参数解析）: {str(e)}"
+                    except Exception as e:
+                        return f"错误: {str(e)}"
+                return wrapper
+            
+            tools.append(Tool(
+                name=name,
+                description=description,
+                func=make_wrapper(bound_method, input_parser, name)
+            ))
+            print(f"  ✓ 已注册工具: {name} (Tool, 实例: {instance.__class__.__name__})")
+        else:
+            # 多参数：使用 StructuredTool
+            try:
+                args_schema = _create_args_schema(name, params)
+                
+                # 创建包装函数，直接接收关键字参数
+                def make_structured_wrapper(m, tool_name):
+                    def wrapper(**kwargs) -> str:
+                        try:
+                            result = m(**kwargs)
+                            return str(result)
+                        except Exception as e:
+                            return f"错误: {str(e)}"
+                    return wrapper
+                
+                tools.append(StructuredTool(
+                    name=name,
+                    description=description,
+                    func=make_structured_wrapper(bound_method, name),
+                    args_schema=args_schema
+                ))
+                print(f"  ✓ 已注册工具: {name} (StructuredTool, 参数: {[p['name'] for p in params]}, 实例: {instance.__class__.__name__})")
+            except Exception as e:
+                print(f"  ⚠️ 创建 StructuredTool 失败: {name}, 错误: {e}")
+                continue
     
     return tools
 

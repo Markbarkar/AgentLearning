@@ -17,6 +17,18 @@ from .base import (
 # 导入工具模块以触发 @register_tool 装饰器注册
 from .qwen_vl_tools import Qwen25VLTools
 from .bash_tool import BashToolExecutor, get_allowed_commands, get_allowed_directories
+from .project_tools import ProjectTools
+
+# 工具执行上下文（用于传递 token 等请求级信息）
+from .context import (
+    get_current_token,
+    get_current_user_id,
+    get_current_context,
+    set_context,
+    clear_context,
+    ContextManager,
+    ToolContext,
+)
 
 # MCP 工具（可选，需要安装 mcp 包）
 try:
@@ -64,4 +76,6 @@ __all__ = [
     "BashToolExecutor",
     "get_allowed_commands",
     "get_allowed_directories",
+    # Project 工具
+    "ProjectTools",
 ]

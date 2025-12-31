@@ -9,9 +9,10 @@ import requests
 from typing import List, Dict, Any, Optional, Union
 from pathlib import Path
 
-from .base import register_tool, _parse_annotate_input, _parse_form_input
+from .base import register_tool, auto_register, _parse_annotate_input, _parse_form_input
 
 
+@auto_register
 class Qwen25VLTools:
     """Qwen2.5-VL 信息提取工具集"""
     

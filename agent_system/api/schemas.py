@@ -17,6 +17,7 @@ class TaskRequest(BaseModel):
     temperature: Optional[float] = Field(None, description="LLM 温度参数（可选，默认使用配置值）", ge=0.0, le=1.0)
     use_rag: Optional[bool] = Field(True, description="是否使用 RAG 增强（默认启用）")
     user_id: Optional[str] = Field(None, description="用户ID（用于知识库隔离）", example="1")
+    token: Optional[str] = Field(None, description="用户认证 token（用于调用需要认证的外部服务）")
 
 
 class TaskResponse(BaseModel):

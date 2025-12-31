@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from ..schemas import TaskRequest, TaskResponse
 from ..dependencies import get_agent, create_tools
 from ...config.database import get_db
+from ...tools.context import set_context, clear_context
 
 
 # 创建路由器
@@ -43,6 +44,12 @@ async def process_task(request: TaskRequest, db: Session = Depends(get_db)):
         任务处理结果
     """
     try:
+        # 设置工具执行上下文（包含 token 等用户信息）
+        set_context(
+            user_id=request.user_id,
+            token=request.token
+        )
+        
         # 如果提供了文件路径，将其添加到任务描述中
         task = request.task
         if request.file_path and request.file_path not in task:
@@ -71,4 +78,8 @@ async def process_task(request: TaskRequest, db: Session = Depends(get_db)):
             result="",
             error=str(e)
         )
+    
+    finally:
+        # 清理上下文
+        clear_context()
 

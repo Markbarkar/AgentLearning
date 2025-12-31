@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Tuple, Optional, Dict, Any
 
-from .base import register_tool, ToolRegistry
+from .base import register_tool, auto_register
 
 # 配置日志
 logger = logging.getLogger("bash_tool")
@@ -302,6 +302,7 @@ def _parse_bash_input(input_str: str) -> Dict[str, Any]:
     }
 
 
+@auto_register
 class BashToolExecutor:
     """Bash 工具执行器"""
     
@@ -345,9 +346,8 @@ command,working_dir
         return policy.execute(command, working_dir)
 
 
-# 创建实例并注册到 ToolRegistry
+# 创建实例（@auto_register 装饰器会自动注册到 ToolRegistry）
 _bash_executor = BashToolExecutor()
-ToolRegistry.register_instance(_bash_executor)
 
 
 def get_allowed_commands() -> Dict[str, Any]:
