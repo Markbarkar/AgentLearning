@@ -293,7 +293,8 @@ def create_sqlite_tools(database_path: str) -> Tuple[List[StructuredTool], MCPCl
 
 def create_tools_from_config(
     config_path: Optional[str] = None,
-    server_names: Optional[List[str]] = None
+    server_names: Optional[List[str]] = None,
+    servers: Optional[Dict[str, MCPServerConfig]] = None
 ) -> Tuple[List[StructuredTool], Dict[str, MCPClientAdapter]]:
     """
     从配置文件创建 MCP LangChain 工具
@@ -303,6 +304,7 @@ def create_tools_from_config(
     参数:
         config_path: 配置文件路径（默认使用 agent_system/config/mcp_servers.json）
         server_names: 要加载的服务器名称列表（默认加载所有启用的服务器）
+        servers: 预加载的服务器配置字典（用于用户级配置覆盖场景）
         
     返回:
         (所有工具的列表, 服务器名称到适配器的字典)
@@ -313,12 +315,19 @@ def create_tools_from_config(
         
         # 只加载指定的服务器
         tools, adapters = create_tools_from_config(server_names=["filesystem", "github"])
+        
+        # 使用预合并的用户配置
+        tools, adapters = create_tools_from_config(servers=merged_user_servers)
     """
     all_tools: List[StructuredTool] = []
     adapters: Dict[str, MCPClientAdapter] = {}
     
-    # 获取配置
-    if server_names:
+    # 获取配置（优先使用传入的 servers 参数）
+    if servers is not None:
+        # 使用传入的服务器配置（用于用户级配置）
+        # 过滤出启用的服务器
+        servers = {name: cfg for name, cfg in servers.items() if cfg.enabled}
+    elif server_names:
         # 加载指定的服务器
         all_servers = load_mcp_config(config_path)
         servers = {name: all_servers[name] for name in server_names if name in all_servers}

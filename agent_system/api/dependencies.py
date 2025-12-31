@@ -25,6 +25,27 @@ _vl_tools_instance = None
 _knowledge_base_instances = {}  # {user_id: KnowledgeBase实例}，支持多用户隔离
 
 
+def clear_agent_cache(user_id: Optional[str] = None):
+    """
+    清除 Agent 缓存
+    
+    当用户更新 MCP 配置等需要重新加载工具时调用
+    
+    Args:
+        user_id: 用户ID，为 None 则清除所有缓存
+    """
+    global _agent_instances
+    
+    if user_id is None:
+        _agent_instances.clear()
+        print("✓ 已清除所有 Agent 缓存")
+    else:
+        cache_key = user_id
+        if cache_key in _agent_instances:
+            del _agent_instances[cache_key]
+            print(f"✓ 已清除用户 {user_id} 的 Agent 缓存")
+
+
 # ==================== 工具实例获取 ====================
 
 def get_vl_tools():
@@ -70,14 +91,15 @@ def get_knowledge_base(user_id: Optional[str] = None):
 
 # ==================== 工具创建函数 ====================
 
-def create_qwen_vl_tools(user_id: Optional[str] = None):
+def create_qwen_vl_tools(user_id: Optional[str] = None, db_session=None):
     """
     创建 Qwen2.5-VL 相关的 LangChain 工具
     
     使用模块化注册机制自动加载工具
     
     Args:
-        user_id: 用户ID，用于创建用户专属的RAG工具
+        user_id: 用户ID，用于创建用户专属的RAG工具和MCP配置
+        db_session: 数据库会话，用于加载用户MCP配置
     """
     vl_tools = get_vl_tools()
     
@@ -97,15 +119,25 @@ def create_qwen_vl_tools(user_id: Optional[str] = None):
     except Exception as e:
         print(f"RAG 工具初始化失败: {str(e)}")
     
-    # 6. MCP 工具（从配置文件加载）
-    # 注意：MCP 工具需要手动管理连接生命周期
-    # 如需启用，取消下面的注释
+    # MCP 工具（支持用户级配置）
+    # MCP 工具需要手动管理连接生命周期
     try:
         from ..tools import create_tools_from_config
-        mcp_tools, mcp_adapters = create_tools_from_config()
+        
+        # 如果提供了用户ID和数据库会话，使用用户级配置
+        if user_id and db_session:
+            from ..services.user_mcp_service import get_merged_mcp_config
+            user_servers = get_merged_mcp_config(db_session, int(user_id))
+            mcp_tools, mcp_adapters = create_tools_from_config(servers=user_servers)
+            user_label = f"用户 {user_id}"
+        else:
+            # 仅使用全局配置
+            mcp_tools, mcp_adapters = create_tools_from_config()
+            user_label = "全局"
+        
         if mcp_tools:
             tools.extend(mcp_tools)
-            print(f"✓ 已加载 {len(mcp_tools)} 个 MCP 工具")
+            print(f"✓ 已加载 {len(mcp_tools)} 个 MCP 工具（{user_label}配置）")
             # 注意：需要在应用退出时调用 close_all_adapters(mcp_adapters)
     except Exception as e:
         print(f"MCP 工具加载失败（可忽略）: {str(e)}")
@@ -116,7 +148,7 @@ def create_qwen_vl_tools(user_id: Optional[str] = None):
 
 # ==================== Agent 实例获取 ====================
 
-def get_agent(user_id: Optional[str] = None, temperature: Optional[float] = None):
+def get_agent(user_id: Optional[str] = None, temperature: Optional[float] = None, db_session=None):
     """
     获取 Agent 实例（多用户模式）
     
@@ -126,6 +158,7 @@ def get_agent(user_id: Optional[str] = None, temperature: Optional[float] = None
     Args:
         user_id: 用户ID，用于实现多用户知识库隔离
         temperature: LLM 温度参数，如果为 None 则使用默认配置
+        db_session: 数据库会话，用于加载用户MCP配置
     
     Returns:
         对应用户的 Agent 实例
@@ -144,8 +177,8 @@ def get_agent(user_id: Optional[str] = None, temperature: Optional[float] = None
             model_kwargs={"seed": LLM_SEED}
         )
         
-        # 创建用户专属工具（包括用户专属RAG工具）
-        tools = create_qwen_vl_tools(user_id)
+        # 创建用户专属工具（包括用户专属RAG工具和MCP工具）
+        tools = create_qwen_vl_tools(user_id, db_session)
         
         # 始终获取用户专属知识库（运行时决定是否使用）
         knowledge_base = None

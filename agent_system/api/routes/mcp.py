@@ -2,12 +2,21 @@
 MCP 服务器配置管理 API 路由
 
 提供 MCP 服务器配置的增删改查和状态管理
+包含全局配置管理和用户级配置覆盖功能
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 from typing import Optional
 
-from ..schemas import MCPServerCreateRequest, MCPServerUpdateRequest
+from ..schemas import (
+    MCPServerCreateRequest, 
+    MCPServerUpdateRequest,
+    UserMCPConfigRequest,
+    UserMCPConfigResponse,
+    UserMCPServerItem,
+    UserMCPServerListResponse
+)
 from ...config.mcp_config import (
     list_all_servers_raw,
     get_raw_server_config,
@@ -15,8 +24,19 @@ from ...config.mcp_config import (
     update_server_config,
     delete_server_config,
     toggle_server,
-    get_enabled_servers
+    get_enabled_servers,
+    load_mcp_config
 )
+from ...config.database import get_db
+from ...services.user_mcp_service import (
+    get_user_mcp_config,
+    list_user_mcp_configs,
+    save_user_mcp_config,
+    delete_user_mcp_config,
+    get_merged_mcp_config,
+    get_merged_single_config
+)
+from ..dependencies import clear_agent_cache
 
 # 创建路由器
 router = APIRouter(prefix="/agent/mcp", tags=["MCP 服务器管理"])
@@ -245,20 +265,20 @@ async def get_connection_status():
                 "description": server.get("description", "")
             }
             
-            if name in _connected_adapters:
-                adapter = _connected_adapters[name]
+            if server.get("enabled", False) == True:
+                # adapter = _connected_adapters[name]
                 server_status["is_connected"] = True
-                server_status["tools_count"] = len(adapter.tools_info)
-                server_status["tools"] = [t["name"] for t in adapter.tools_info]
+                # server_status["tools_count"] = len(adapter.tools_info)
+                # server_status["tools"] = [t["name"] for t in adapter.tools_info]
                 connected_servers.append(server_status)
             else:
                 server_status["is_connected"] = False
                 disconnected_servers.append(server_status)
         
-        total_tools = sum(
-            len(adapter.tools_info) 
-            for adapter in _connected_adapters.values()
-        )
+        # total_tools = sum(
+        #     len(adapter.tools_info) 
+        #     for adapter in _connected_adapters.values()
+        # )
         
         return {
             "success": True,
@@ -272,6 +292,171 @@ async def get_connection_status():
             "disconnected": disconnected_servers
         }
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== 用户级 MCP 配置 API ====================
+
+@router.get("/user/{user_id}/servers", response_model=UserMCPServerListResponse)
+async def list_user_servers(user_id: int, db: Session = Depends(get_db)):
+    """
+    获取用户可用的 MCP 服务器列表（合并后）
+    
+    返回全局模板中的所有服务器，并标注哪些有用户覆盖配置
+    启用状态以合并后的结果为准
+    
+    Args:
+        user_id: 用户 ID
+    """
+    try:
+        # 获取全局配置
+        global_configs = load_mcp_config()
+        
+        # 获取用户覆盖配置
+        user_overrides = list_user_mcp_configs(db, user_id)
+        
+        # 获取合并后的配置
+        merged_configs = get_merged_mcp_config(db, user_id)
+        
+        servers = []
+        for name, merged_config in merged_configs.items():
+            servers.append(UserMCPServerItem(
+                name=name,
+                description=merged_config.description,
+                enabled=merged_config.enabled,
+                has_user_override=name in user_overrides
+            ))
+        
+        return UserMCPServerListResponse(
+            user_id=user_id,
+            servers=servers,
+            total=len(servers)
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/user/{user_id}/servers/{name}")
+async def get_user_server(user_id: int, name: str, db: Session = Depends(get_db)):
+    """
+    获取用户单个 MCP 服务器配置详情
+    
+    返回全局配置、用户覆盖配置和合并后的配置
+    
+    Args:
+        user_id: 用户 ID
+        name: 服务器名称
+    """
+    try:
+        result = get_merged_single_config(db, user_id, name)
+        
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"服务器 '{name}' 不存在")
+        
+        return {
+            "success": True,
+            **result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/user/{user_id}/servers/{name}")
+async def update_user_server(
+    user_id: int, 
+    name: str, 
+    request: UserMCPConfigRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    配置用户的 MCP 服务器覆盖项
+    
+    用户只需提供需要覆盖的字段（如 env、enabled），
+    其他字段继承全局模板配置
+    
+    Args:
+        user_id: 用户 ID
+        name: 服务器名称
+        request: 覆盖配置
+    """
+    try:
+        # 检查服务器是否存在于全局配置
+        global_configs = load_mcp_config()
+        if name not in global_configs:
+            raise HTTPException(status_code=404, detail=f"服务器 '{name}' 不存在于全局配置")
+        
+        # 构建覆盖配置
+        override_config = {}
+        if request.env is not None:
+            override_config["env"] = request.env
+        if request.enabled is not None:
+            override_config["enabled"] = request.enabled
+        
+        if not override_config:
+            raise HTTPException(status_code=400, detail="至少需要提供一个覆盖字段")
+        
+        # 保存用户配置
+        success = save_user_mcp_config(db, user_id, name, override_config)
+        
+        if success:
+            # 清除用户的 Agent 缓存，下次请求会使用新配置
+            clear_agent_cache(str(user_id))
+            
+            # 返回合并后的配置
+            merged = get_merged_single_config(db, user_id, name)
+            return {
+                "success": True,
+                "message": f"用户配置已保存，Agent 将在下次请求时使用新配置",
+                "result": merged.get("merged_config", {})
+            }
+        else:
+            raise HTTPException(status_code=500, detail="保存配置失败")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/user/{user_id}/servers/{name}")
+async def delete_user_server(user_id: int, name: str, db: Session = Depends(get_db)):
+    """
+    删除用户的 MCP 服务器覆盖配置
+    
+    删除后该服务器将使用全局模板配置
+    
+    Args:
+        user_id: 用户 ID
+        name: 服务器名称
+    """
+    try:
+        # 检查用户配置是否存在
+        existing = get_user_mcp_config(db, user_id, name)
+        if existing is None:
+            raise HTTPException(status_code=404, detail=f"用户未配置服务器 '{name}'")
+        
+        # 删除配置
+        success = delete_user_mcp_config(db, user_id, name)
+        
+        if success:
+            # 清除用户的 Agent 缓存，下次请求会使用全局配置
+            clear_agent_cache(str(user_id))
+            
+            return {
+                "success": True,
+                "message": f"用户配置已删除",
+                "server_name": name
+            }
+        else:
+            raise HTTPException(status_code=500, detail="删除配置失败")
+            
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

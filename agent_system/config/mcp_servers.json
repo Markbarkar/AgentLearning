@@ -1,11 +1,5 @@
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
-      "enabled": false,
-      "description": "文件系统操作工具，提供文件读写、目录浏览等功能"
-    },
     "360-netdisk": {
       "command": "npx",
       "args": ["-y", "@aicloud360/mcp-server-disk"],
@@ -13,7 +7,7 @@
         "API_KEY": "${360_NETDISK_API_KEY}"
       },
       "enabled": true,
-      "description": "360 网盘工具，提供云存储文件管理功能"
+      "description": "360 网盘工具，api_key获取地址：https://www.yunpan.com/micro/mcp#/"
     }
   }
 }

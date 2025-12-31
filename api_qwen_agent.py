@@ -51,7 +51,7 @@ if __name__ == "__main__":
     import uvicorn
     from agent_system.config.settings import LLM_MODEL
     from agent_system.tools import Qwen25VLTools
-        
+    
     # 启动服务
     uvicorn.run(
         app,

@@ -192,12 +192,12 @@ def get_tools_by_tags(tags: List[str], vl_tools=None) -> List[Tool]:
         BaseTool.set_vl_tools(vl_tools)
     
     tools = []
-    for name, tool_class in ToolRegistry.get_all().items():
+    for tool_name, tool_class in ToolRegistry.get_all().items():
         if any(tag in tool_class.tags for tag in tags):
             try:
                 tool_instance = tool_class()
                 tools.append(tool_instance.to_langchain_tool())
             except Exception as e:
-                print(f"⚠️ 工具 '{name}' 创建失败: {e}")
+                print(f"⚠️ 工具 '{tool_name}' 创建失败: {e}")
     
     return tools

@@ -5,7 +5,7 @@ API 请求和响应模型定义
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Dict, Any, List
 
 
 # ==================== 任务相关模型 ====================
@@ -92,4 +92,35 @@ class MCPServerUpdateRequest(BaseModel):
     env: Optional[dict] = Field(None, description="环境变量")
     enabled: Optional[bool] = Field(None, description="是否启用")
     description: Optional[str] = Field(None, description="服务器描述")
+
+
+# ==================== 用户 MCP 配置相关模型 ====================
+
+class UserMCPConfigRequest(BaseModel):
+    """用户 MCP 配置覆盖请求模型"""
+    env: Optional[Dict[str, str]] = Field(None, description="环境变量覆盖", example={"API_KEY": "your_api_key"})
+    enabled: Optional[bool] = Field(None, description="启用状态覆盖")
+
+
+class UserMCPConfigResponse(BaseModel):
+    """用户 MCP 配置详情响应模型"""
+    server_name: str = Field(..., description="服务器名称")
+    global_config: Dict[str, Any] = Field(..., description="全局模板配置")
+    user_override: Dict[str, Any] = Field(..., description="用户覆盖配置")
+    merged_config: Dict[str, Any] = Field(..., description="合并后配置")
+
+
+class UserMCPServerItem(BaseModel):
+    """用户 MCP 服务器列表项"""
+    name: str = Field(..., description="服务器名称")
+    description: str = Field("", description="服务器描述")
+    enabled: bool = Field(..., description="是否启用（合并后）")
+    has_user_override: bool = Field(..., description="是否有用户覆盖配置")
+
+
+class UserMCPServerListResponse(BaseModel):
+    """用户 MCP 服务器列表响应模型"""
+    user_id: int = Field(..., description="用户 ID")
+    servers: List[UserMCPServerItem] = Field(..., description="服务器列表")
+    total: int = Field(..., description="服务器总数")
 

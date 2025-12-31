@@ -115,7 +115,7 @@ class SimpleMCPClient:
             }
             for tool in tools_response.tools
         ]
-        
+    
         print(f"   ✅ [{self.server_name}] 连接成功，发现 {len(self.tools_info)} 个工具")
     
     def connect(self):
@@ -512,7 +512,7 @@ def main():
                 
                 # 测试 4: 工具执行
                 test_tool_execution(clients)
-        
+    
         # 清理简单客户端
         cleanup(clients)
         clients = {}  # 已清理
