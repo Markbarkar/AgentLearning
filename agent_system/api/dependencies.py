@@ -91,11 +91,9 @@ def get_knowledge_base(user_id: Optional[str] = None):
 
 # ==================== 工具创建函数 ====================
 
-def create_qwen_vl_tools(user_id: Optional[str] = None, db_session=None):
-    """
-    创建 Qwen2.5-VL 相关的 LangChain 工具
-    
-    使用模块化注册机制自动加载工具
+def create_tools(user_id: Optional[str] = None, db_session=None):
+    """    
+    使用方法级装饰器自动加载工具
     
     Args:
         user_id: 用户ID，用于创建用户专属的RAG工具和MCP配置
@@ -103,8 +101,8 @@ def create_qwen_vl_tools(user_id: Optional[str] = None, db_session=None):
     """
     vl_tools = get_vl_tools()
     
-    # 从注册表动态加载所有工具
-    from ..tools.registry import get_all_tools
+    # 从注册表动态加载所有工具（基于 @register_tool 装饰器）
+    from ..tools.base import get_all_tools
     tools = get_all_tools(vl_tools=vl_tools)
     print(f"✓ 从注册表加载了 {len(tools)} 个工具")
     
@@ -178,7 +176,7 @@ def get_agent(user_id: Optional[str] = None, temperature: Optional[float] = None
         )
         
         # 创建用户专属工具（包括用户专属RAG工具和MCP工具）
-        tools = create_qwen_vl_tools(user_id, db_session)
+        tools = create_tools(user_id, db_session)
         
         # 始终获取用户专属知识库（运行时决定是否使用）
         knowledge_base = None

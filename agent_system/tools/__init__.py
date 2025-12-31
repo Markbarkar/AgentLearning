@@ -1,4 +1,9 @@
-"""工具模块"""
+"""
+工具模块
+
+使用 @register_tool 装饰器自动注册工具
+"""
+
 from .train_tools import search_train_ticket_tool, purchase_train_ticket_tool
 from .common_tools import finish_tool
 from .mcp_file_tools import (
@@ -10,19 +15,17 @@ from .mcp_file_tools import (
     close_all_adapters,
     MCPClientAdapter
 )
-from .qwen_vl_tools import Qwen25VLTools
 from .rag_tools import create_rag_search_tool
 
-# 模块化工具注册系统
-from .registry import (
-    BaseTool,
+# 工具注册系统（新的方法级装饰器）
+from .base import (
     ToolRegistry,
     register_tool,
     get_all_tools,
-    get_tool_by_name,
-    get_tools_by_tags,
-    list_registered_tools
 )
+
+# 导入 Qwen25VLTools 以触发 @register_tool 装饰器注册
+from .qwen_vl_tools import Qwen25VLTools
 
 __all__ = [
     # 火车票工具
@@ -44,13 +47,7 @@ __all__ = [
     # RAG 工具
     "create_rag_search_tool",
     # 工具注册系统
-    "BaseTool",
     "ToolRegistry",
     "register_tool",
     "get_all_tools",
-    "get_tool_by_name",
-    "get_tools_by_tags",
-    "list_registered_tools"
 ]
-
-

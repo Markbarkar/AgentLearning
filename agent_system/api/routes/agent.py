@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from ..schemas import TaskRequest, TaskResponse
-from ..dependencies import get_agent, create_qwen_vl_tools
+from ..dependencies import get_agent, create_tools
 from ...config.database import get_db
 
 
@@ -25,7 +25,7 @@ async def get_tools_info():
                 "name": tool.name,
                 "description": tool.description,
             }
-            for tool in create_qwen_vl_tools()
+            for tool in create_tools()
         ]
     }
 

@@ -34,10 +34,10 @@ class Agent:
     6. 直到任务完成（调用 FINISH 工具）
     
     使用方式:
-        >>> from langchain_openai import ChatOpenAI
-        >>> llm = ChatOpenAI(model="deepseek-chat")
-        >>> agent = Agent(llm=llm, tools=[...])
-        >>> result = agent.run("帮我查询火车票")
+    >>> from langchain_openai import ChatOpenAI
+    >>> llm = ChatOpenAI(model="deepseek-chat")
+    >>> agent = Agent(llm=llm, tools=[...])
+    >>> result = agent.run("帮我查询火车票")
     """
     
     def __init__(

@@ -1,11 +1,15 @@
 """
 Qwen2.5-VL 信息提取工具集
 供 Agent 使用的工具封装
+
+使用 @register_tool 装饰器自动注册为 LangChain Tool
 """
 
 import requests
 from typing import List, Dict, Any, Optional, Union
 from pathlib import Path
+
+from .base import register_tool, _parse_annotate_input, _parse_form_input
 
 
 class Qwen25VLTools:
@@ -58,10 +62,23 @@ class Qwen25VLTools:
         finally:
             files["file"].close()
     
+    @register_tool(
+        name="annotate_legal_pdf",
+        description="""标注 PDF 法律文书，提取指定字段及其在文档中的位置。
+
+输入格式：file_path,key_fields
+- file_path: PDF 文件路径
+- key_fields: 要提取的字段，用分号分隔，如 "案号;法院;当事人"
+
+支持的字段：案号、主办律师、协办律师、当事人、原告、被告、委托人、法院、案由、开庭时间等
+
+示例：/path/to/file.pdf,案号;法院;当事人""",
+        input_parser=_parse_annotate_input
+    )
     def annotate_legal_pdf(
         self,
         file_path: str,
-        key_fields: Union[List[str], str],
+        key_fields: Union[List[str], str] = "",
         temperature: float = 0.1,
         max_tokens: int = 2048
     ) -> Dict[str, Any]:
@@ -82,7 +99,7 @@ class Qwen25VLTools:
         if isinstance(key_fields, list):
             key_fields_str = ",".join(key_fields)
         else:
-            key_fields_str = key_fields
+            key_fields_str = key_fields.replace(';', ',')
         
         files = {"file": open(file_path, "rb")}
         data = {
@@ -100,6 +117,17 @@ class Qwen25VLTools:
         finally:
             files["file"].close()
     
+    @register_tool(
+        name="recognize_form",
+        description="""识别表单/表格内容。
+
+输入格式：file_path,table_type
+- file_path: 表单图片或PDF文件路径
+- table_type: 表单类型（可选），可选值：main/task/fee/asset/custom，默认 main
+
+示例：/path/to/form.pdf,main""",
+        input_parser=_parse_form_input
+    )
     def recognize_form(
         self,
         file_path: str,
@@ -137,6 +165,15 @@ class Qwen25VLTools:
         finally:
             files["image"].close()
     
+    @register_tool(
+        name="extract_document_text",
+        description="""提取文档全文内容（OCR），支持 PDF 和图片。
+
+输入：文件路径
+输出：文档的完整文本内容
+
+示例：/path/to/document.pdf"""
+    )
     def extract_text(
         self,
         file_path: Optional[str] = None,
@@ -169,13 +206,21 @@ class Qwen25VLTools:
             
             response.raise_for_status()
             result = response.json()
-            # result示例格式：
-            # [{'page': 1, 'content': '见如下：该项目地块...', 'processing_time': '4.27秒'}]
-            # print('result', result.get("pages", []))
             return result.get("pages", [])
         except Exception as e:
             return [{"error": str(e)}]
     
+    @register_tool(
+        name="extract_legal_key_info",
+        description="""提取法律文书的关键信息，如案号、当事人、法院、案由、开庭时间等。
+
+输入：法律文书文件路径（PDF 或图片）
+输出：结构化的关键信息字典
+
+适用于：起诉状、判决书、裁定书、律师函等法律文书
+
+示例：/path/to/legal_document.pdf"""
+    )
     def extract_key_info(
         self,
         file_path: Optional[str] = None,
@@ -240,6 +285,7 @@ class Qwen25VLTools:
             return response.json()
         except Exception as e:
             return {"error": str(e)}
+
 
 if __name__ == "__main__":
     tools = Qwen25VLTools()
