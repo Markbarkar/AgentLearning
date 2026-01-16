@@ -1,0 +1,37 @@
+{
+  "groups": {
+    "ocr": {
+      "description": "OCR和文档处理工具，用于提取、识别PDF和图片中的文字",
+      "tools": ["extract_pdf_text", "annotate_legal_pdf", "recognize_form"],
+      "aliases": ["提取", "识别", "OCR", "文档", "PDF", "扫描", "图片文字"]
+    },
+    "cloud_drive": {
+      "description": "云盘文件操作，包括文件列表、上传、下载、分享等",
+      "tools": ["file-list", "file-search", "file-download-stdio", "file-upload-stdio", "make-dir", "file-move", "file-rename", "file-share", "get-download-url", "file-save", "user-info"],
+      "aliases": ["云盘", "网盘", "文件列表", "上传", "下载", "分享", "文件夹", "目录"]
+    },
+    "legal": {
+      "description": "法律文书处理工具，用于提取法律关键信息和检索知识库",
+      "tools": ["extract_legal_key_info", "search_knowledge_base"],
+      "aliases": ["法律", "合同", "案件", "判决", "起诉", "当事人", "法院"]
+    },
+    "system": {
+      "description": "系统命令执行工具",
+      "tools": ["execute_bash"],
+      "aliases": ["命令", "终端", "bash", "shell", "执行", "运行命令"]
+    },
+    "project": {
+      "description": "项目管理工具，获取表格和关联文件",
+      "tools": ["get_tables", "get_linked_files", "upload_linked_file"],
+      "aliases": ["项目", "表格", "关联文件", "附件"]
+    }
+  },
+  "intent_mapping": {
+    "chat": [],
+    "knowledge_qa": ["legal"],
+    "tool_call": ["ocr", "cloud_drive", "legal", "system", "project"],
+    "complex_task": ["ocr", "cloud_drive", "legal", "system", "project"]
+  },
+  "default_tools": ["FINISH"],
+  "always_include": ["FINISH"]
+}

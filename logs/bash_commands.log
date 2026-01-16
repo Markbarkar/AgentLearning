@@ -52,3 +52,53 @@
 2025-12-31 16:33:20,775 | INFO | 命令执行成功: ls -la /projects/AgentLearning/workspace
 2025-12-31 16:33:23,714 | INFO | 尝试执行: find /projects/AgentLearning/data -type f (目录: /projects/AgentLearning/workspace)
 2025-12-31 16:33:23,721 | INFO | 命令执行成功: find /projects/AgentLearning/data -type f
+2026-01-01 10:52:26,093 | INFO | 尝试执行: ls -la (目录: /projects/AgentLearning/workspace)
+2026-01-01 10:52:26,099 | INFO | 命令执行成功: ls -la
+2026-01-01 10:52:29,161 | INFO | 尝试执行: find /projects/AgentLearning -name '*.pdf' -type f (目录: /projects/AgentLearning/workspace)
+2026-01-01 10:52:29,163 | WARNING | 命令被拒绝: 路径 '/projects/AgentLearning' 不在允许的目录范围内
+2026-01-01 10:52:31,778 | INFO | 尝试执行: find /projects/AgentLearning/workspace -name '*.pdf' -type f (目录: /projects/AgentLearning/workspace)
+2026-01-01 10:52:31,784 | INFO | 命令执行成功: find /projects/AgentLearning/workspace -name '*.pdf' -type f
+2026-01-01 10:52:34,511 | INFO | 尝试执行: find /projects/AgentLearning/data -name '*.pdf' -type f (目录: /projects/AgentLearning/workspace)
+2026-01-01 10:52:34,519 | INFO | 命令执行成功: find /projects/AgentLearning/data -name '*.pdf' -type f
+2026-01-01 10:53:39,622 | INFO | 尝试执行: ls -la (目录: /projects/AgentLearning/workspace)
+2026-01-01 10:53:39,628 | INFO | 命令执行成功: ls -la
+2026-01-01 10:53:42,613 | INFO | 尝试执行: find /projects/AgentLearning/workspace -name '*.pdf' -o -name '*.PDF' (目录: /projects/AgentLearning/workspace)
+2026-01-01 10:53:42,619 | INFO | 命令执行成功: find /projects/AgentLearning/workspace -name '*.pdf' -o -name '*.PDF'
+2026-01-01 10:53:46,079 | INFO | 尝试执行: find /projects/AgentLearning/data -name '*.pdf' -o -name '*.PDF' (目录: /projects/AgentLearning/workspace)
+2026-01-01 10:53:46,087 | INFO | 命令执行成功: find /projects/AgentLearning/data -name '*.pdf' -o -name '*.PDF'
+2026-01-01 11:06:08,346 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -name '*.pdf' -o -name '*.PDF' | head -20 (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:06:08,347 | WARNING | 命令被拒绝: 不允许使用字符: '|'
+2026-01-01 11:06:11,130 | INFO | 尝试执行: find /projects/AgentLearning/workspace -name '*.pdf' (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:06:11,136 | INFO | 命令执行成功: find /projects/AgentLearning/workspace -name '*.pdf'
+2026-01-01 11:06:14,000 | INFO | 尝试执行: find /projects/AgentLearning/data -name '*.pdf' (目录: /projects/AgentLearning/data)
+2026-01-01 11:06:14,007 | INFO | 命令执行成功: find /projects/AgentLearning/data -name '*.pdf'
+2026-01-01 11:06:35,868 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -name '*.pdf' -o -name '*.PDF' (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:06:35,877 | INFO | 命令执行成功: find /projects/AgentLearning/workspace /projects/AgentLearning/data -name '*.pdf' -o -name '*.PDF'
+2026-01-01 11:06:39,034 | INFO | 尝试执行: find /projects/AgentLearning/workspace -type f (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:06:39,040 | INFO | 命令执行成功: find /projects/AgentLearning/workspace -type f
+2026-01-01 11:14:54,786 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name '*.pdf' | head -20 (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:14:54,787 | WARNING | 命令被拒绝: 不允许使用字符: '|'
+2026-01-01 11:14:58,087 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name '*.pdf' (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:14:58,095 | INFO | 命令执行成功: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name '*.pdf'
+2026-01-01 11:15:00,645 | INFO | 尝试执行: ls -la /projects/AgentLearning/workspace (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:00,651 | INFO | 命令执行成功: ls -la /projects/AgentLearning/workspace
+2026-01-01 11:15:04,016 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name '*.pdf' -exec ls -la {} \; (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:04,017 | WARNING | 命令被拒绝: 检测到危险模式: 'exec'
+2026-01-01 11:15:06,782 | INFO | 尝试执行: ls -la /projects/AgentLearning/data (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:06,789 | INFO | 命令执行成功: ls -la /projects/AgentLearning/data
+2026-01-01 11:15:09,926 | INFO | 尝试执行: find /projects/AgentLearning/data/knowledge_base -type f -name '*.pdf' (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:09,933 | INFO | 命令执行成功: find /projects/AgentLearning/data/knowledge_base -type f -name '*.pdf'
+2026-01-01 11:15:31,143 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name '*.pdf' | head -20 (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:31,144 | WARNING | 命令被拒绝: 不允许使用字符: '|'
+2026-01-01 11:15:34,314 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name '*.pdf' (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:34,322 | INFO | 命令执行成功: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name '*.pdf'
+2026-01-01 11:15:37,780 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f -name '*.pdf' -exec ls -la {} \; (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:37,781 | WARNING | 命令被拒绝: 检测到危险模式: 'exec'
+2026-01-01 11:15:47,311 | INFO | 尝试执行: ls -la /projects/AgentLearning/workspace /projects/AgentLearning/data (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:47,318 | INFO | 命令执行成功: ls -la /projects/AgentLearning/workspace /projects/AgentLearning/data
+2026-01-01 11:15:51,645 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f \( -name '*.pdf' -o -name '*.PDF' -o -name '*.doc' -o -name '*.docx' \) (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:51,654 | INFO | 命令执行成功: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f \( -name '*.pdf' -o -name '*.PDF' -o -name '*.doc' -o -name '*.docx' \)
+2026-01-01 11:15:54,865 | INFO | 尝试执行: find /projects/AgentLearning/workspace /projects/AgentLearning/data -type f | head -30 (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:15:54,866 | WARNING | 命令被拒绝: 不允许使用字符: '|'
+2026-01-01 11:16:05,486 | INFO | 尝试执行: tree -a /projects/AgentLearning/workspace /projects/AgentLearning/data (目录: /projects/AgentLearning/workspace)
+2026-01-01 11:16:05,498 | INFO | 命令执行成功: tree -a /projects/AgentLearning/workspace /projects/AgentLearning/data

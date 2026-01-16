@@ -1,0 +1,11 @@
+{
+  "intent_types": [
+    {"name": "chat", "description": "闲聊对话", "priority": 1},
+    {"name": "knowledge_qa", "description": "知识问答", "priority": 2},
+    {"name": "tool_call", "description": "单工具调用", "priority": 3},
+    {"name": "complex_task", "description": "复杂任务", "priority": 4}
+  ],
+  "default_intent": "complex_task",
+  "confidence_threshold": 0.7,
+  "fallback_handler": "complex_task"
+}
