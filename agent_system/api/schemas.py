@@ -125,3 +125,35 @@ class UserMCPServerListResponse(BaseModel):
     servers: List[UserMCPServerItem] = Field(..., description="服务器列表")
     total: int = Field(..., description="服务器总数")
 
+
+# ==================== 新 RAG 架构相关模型 ====================
+
+class EnhancedKBBuildRequest(BaseModel):
+    """增强知识库构建请求（使用新 RAG 架构）"""
+    user_id: Optional[str] = Field(None, description="用户ID")
+    directory: Optional[str] = Field(None, description="文档目录路径")
+    clear_existing: bool = Field(False, description="是否清空已有数据")
+    chunker_type: str = Field("legal", description="分块器类型: legal/recursive/semantic")
+    chunk_size: int = Field(800, description="分块大小", ge=200, le=2000)
+    store_type: str = Field("auto", description="存储类型: milvus/chroma/auto")
+    enable_bm25: bool = Field(True, description="是否启用 BM25 索引")
+
+
+class EnhancedSearchRequest(BaseModel):
+    """增强检索请求（使用新 RAG 架构）"""
+    query: str = Field(..., description="查询文本")
+    user_id: Optional[str] = Field(None, description="用户ID")
+    top_k: int = Field(5, description="返回结果数量", ge=1, le=20)
+    use_vector: bool = Field(True, description="是否使用向量检索")
+    use_bm25: bool = Field(True, description="是否使用 BM25 检索")
+    enable_rerank: bool = Field(True, description="是否启用重排序")
+    fusion_method: str = Field("rrf", description="融合方法: rrf/linear/max")
+    similarity_threshold: float = Field(0.3, description="相似度阈值", ge=0.0, le=1.0)
+
+
+class CompareSearchRequest(BaseModel):
+    """对比检索请求（同时使用新旧架构）"""
+    query: str = Field(..., description="查询文本")
+    user_id: Optional[str] = Field(None, description="用户ID")
+    top_k: int = Field(5, description="返回结果数量", ge=1, le=20)
+

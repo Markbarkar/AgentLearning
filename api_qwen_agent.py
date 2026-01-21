@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 从 API 模块导入路由
-from agent_system.api.routes import knowledge_base, documents, agent, mcp
+from agent_system.api.routes import knowledge_base, documents, agent, mcp, knowledge_base_v2
 
 
 # 创建 FastAPI 应用
@@ -45,6 +45,7 @@ app.include_router(knowledge_base.router)
 app.include_router(documents.router)
 app.include_router(agent.router)
 app.include_router(mcp.router)
+app.include_router(knowledge_base_v2.router)  # 新 RAG 架构路由
 
 
 if __name__ == "__main__":

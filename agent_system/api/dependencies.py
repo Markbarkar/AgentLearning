@@ -137,7 +137,7 @@ def get_knowledge_base(user_id: Optional[str] = None):
 # ==================== 全部工具加载 ====================
 
 def get_all_tools(user_id: Optional[str] = None, db_session=None) -> List:
-    """
+    """    
     获取全部工具列表
     
     基础工具共享，用户 MCP 工具单独加载

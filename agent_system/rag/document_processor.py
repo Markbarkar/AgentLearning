@@ -242,6 +242,40 @@ class DocumentProcessor:
             return text.strip()
         except Exception as e:
             raise Exception(f"Word 文档读取失败: {str(e)}")
+    
+    def _extract_text_from_file(self, file_path) -> str:
+        """
+        从文件提取纯文本（不分块）
+        
+        这是一个便捷方法，用于只需要提取文本而不需要分块的场景
+        
+        Args:
+            file_path: 文件路径（字符串或 Path 对象）
+            
+        Returns:
+            提取的文本，如果失败返回空字符串
+        """
+        file_path = Path(file_path)
+        
+        if not file_path.exists():
+            return ""
+        
+        suffix = file_path.suffix.lower()
+        
+        try:
+            if suffix == '.pdf':
+                return self._extract_pdf_text(file_path)
+            elif suffix == '.txt':
+                return self._extract_txt_text(file_path)
+            elif suffix in ['.docx', '.doc']:
+                return self._extract_docx_text(file_path)
+            elif suffix == '.md':
+                return self._extract_txt_text(file_path)
+            else:
+                return ""
+        except Exception as e:
+            print(f"提取文本失败 {file_path}: {e}")
+            return ""
 
 
 if __name__ == "__main__":
